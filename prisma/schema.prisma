@@ -1,0 +1,311 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ThreadStatus {
+  OPEN
+  RESOLVED
+  ARCHIVED
+}
+
+enum ThreadKind {
+  PRIVATE
+}
+
+enum SenderType {
+  USER
+  BOT
+  SYSTEM
+}
+
+enum BotEventStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  ACKNOWLEDGED
+}
+
+enum DeliveryStatus {
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id            String   @id
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String
+  image         String?
+
+  accounts            Account[]
+  sessions            Session[]
+  passkeys            Passkey[]
+  profile             UserProfile?
+  threadParticipants  ThreadParticipant[]
+  messagesAsUser      Message[]           @relation("MessageSenderUser")
+  botIdentity         BotIdentity?
+  botApiKeys          BotApiKey[]
+  createdThreads      Thread[]            @relation("ThreadCreatedBy")
+  receivedBotEvents   BotEvent[]          @relation("BotEventRecipient")
+  generatedBotEvents  BotEvent[]          @relation("BotEventGeneratedBy")
+  createdAuditEntries AuditLog[]          @relation("AuditActorUser")
+}
+
+model Session {
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Account {
+  id                    String    @id
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  providerId            String
+  accountId             String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  value      String
+  expiresAt  DateTime
+  identifier String
+
+  @@index([identifier])
+  @@index([expiresAt])
+}
+
+model Passkey {
+  id           String   @id @default(cuid())
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String   @unique
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime @default(now())
+  aaguid       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  displayName    String?
+  headline       String?
+  bio            String?
+  twitterUrl     String?
+  githubUrl      String?
+  websiteUrl     String?
+  emailVisible   Boolean  @default(true)
+  socialsVisible Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProjectCache {
+  id              String    @id @default(cuid())
+  repoName        String    @unique
+  fullName        String
+  description     String?
+  language        String?
+  homepage        String?
+  htmlUrl         String
+  createdAtGithub DateTime
+  updatedAtGithub DateTime
+  pushedAtGithub  DateTime?
+  stars           Int       @default(0)
+  isFork          Boolean   @default(false)
+  syncedAt        DateTime  @default(now())
+}
+
+model ProjectOverride {
+  id            String   @id @default(cuid())
+  repoName      String   @unique
+  isFeatured    Boolean  @default(false)
+  featuredOrder Int?
+  label         String?
+  summary       String?
+  iframeUrl     String?
+  hide          Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+}
+
+model Thread {
+  id                 String       @id @default(cuid())
+  kind               ThreadKind   @default(PRIVATE)
+  status             ThreadStatus @default(OPEN)
+  aiAutoReplyEnabled Boolean      @default(false)
+  createdByUserId    String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  createdBy    User?               @relation("ThreadCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  participants ThreadParticipant[]
+  messages     Message[]
+  botEvents    BotEvent[]
+
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model ThreadParticipant {
+  id        String   @id @default(cuid())
+  threadId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id           String     @id @default(cuid())
+  threadId     String
+  senderType   SenderType
+  senderUserId String?
+  senderBotId  String?
+  content      String
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+  moderated    Boolean    @default(false)
+
+  thread     Thread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderUser User?        @relation("MessageSenderUser", fields: [senderUserId], references: [id], onDelete: SetNull)
+  senderBot  BotIdentity? @relation(fields: [senderBotId], references: [id], onDelete: SetNull)
+
+  botEvents BotEvent[]
+
+  @@index([threadId, createdAt])
+  @@index([senderUserId])
+  @@index([senderBotId])
+}
+
+model BotIdentity {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  displayName    String?
+  relayEnabled   Boolean  @default(true)
+  externalBotRef String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys  BotApiKey[]
+  messages Message[]
+}
+
+model BotApiKey {
+  id             String    @id @default(cuid())
+  keyId          String    @unique
+  userId         String
+  botIdentityId  String
+  name           String
+  keyFingerprint String
+  revokedAt      DateTime?
+  lastUsedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botIdentity BotIdentity @relation(fields: [botIdentityId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([botIdentityId])
+}
+
+model BotEvent {
+  id                String         @id @default(cuid())
+  recipientUserId   String
+  threadId          String
+  messageId         String
+  generatedByUserId String?
+  status            BotEventStatus @default(PENDING)
+  attempts          Int            @default(0)
+  payload           Json
+  acknowledgedAt    DateTime?
+  nextAttemptAt     DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  recipientUser    User                 @relation("BotEventRecipient", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  thread           Thread               @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  message          Message              @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  generatedByUser  User?                @relation("BotEventGeneratedBy", fields: [generatedByUserId], references: [id], onDelete: SetNull)
+  deliveryAttempts BotDeliveryAttempt[]
+
+  @@index([recipientUserId, status])
+  @@index([threadId])
+}
+
+model BotDeliveryAttempt {
+  id           String         @id @default(cuid())
+  botEventId   String
+  status       DeliveryStatus
+  statusCode   Int?
+  responseBody String?
+  error        String?
+  createdAt    DateTime       @default(now())
+
+  botEvent BotEvent @relation(fields: [botEventId], references: [id], onDelete: Cascade)
+
+  @@index([botEventId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  targetType  String?
+  targetId    String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  actorUser User? @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([createdAt])
+}
