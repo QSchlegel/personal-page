@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Github, KeyRound, LogOut, ShieldCheck } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
+import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
 
 export function AuthPanel({ className = "" }: { className?: string }) {
   const { data: session, isPending } = authClient.useSession();
@@ -21,6 +22,19 @@ export function AuthPanel({ className = "" }: { className?: string }) {
 
   async function signInPasskey() {
     setMessage(null);
+
+    if (!hasPasskeySupport()) {
+      setMessage("Passkeys are not supported on this browser/device.");
+      return;
+    }
+
+    const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
+
+    if (!hasLocalPasskeyAuthenticator) {
+      setMessage("No local passkey authenticator is available. Sign in with GitHub, then register a passkey.");
+      return;
+    }
+
     const result = await authClient.signIn.passkey();
     if (result.error) {
       setMessage(result.error.message ?? "Passkey sign-in failed.");
@@ -29,8 +43,10 @@ export function AuthPanel({ className = "" }: { className?: string }) {
 
   async function addPasskey() {
     setMessage(null);
+    const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
     const result = await authClient.passkey.addPasskey({
       name: "Portfolio Passkey",
+      ...(hasLocalPasskeyAuthenticator ? { authenticatorAttachment: "platform" as const } : {}),
     });
 
     if (result.error) {
