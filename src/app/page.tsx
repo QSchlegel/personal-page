@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Github, Mail, MessageSquare } from "lucide-react";
 
 import { FloatingAuthChat } from "@/components/FloatingAuthChat";
@@ -30,26 +31,41 @@ export default function HomePage() {
 
       <main className="main-content">
         <section className="hero panel">
-          <p className="eyebrow">{siteConfig.heroEyebrow}</p>
-          <h1>{siteConfig.heroTitle}</h1>
-          <p className="hero-lead">{siteConfig.heroDescription}</p>
+          <div className="hero-grid">
+            <div className="hero-copy">
+              <p className="eyebrow">{siteConfig.heroEyebrow}</p>
+              <h1>{siteConfig.heroTitle}</h1>
+              <p className="hero-lead">{siteConfig.heroDescription}</p>
 
-          <div className="hero-actions">
-            <a href="#timeline">
-              <ArrowRight className="icon-sm" />
-              Explore Projects
-            </a>
-            <Link href="/comms">
-              <MessageSquare className="icon-sm" />
-              Start Secure Chat
-            </Link>
+              <div className="hero-actions">
+                <a href="#timeline">
+                  <ArrowRight className="icon-sm" />
+                  Explore Projects
+                </a>
+                <Link href="/comms">
+                  <MessageSquare className="icon-sm" />
+                  Start Secure Chat
+                </Link>
+              </div>
+
+              <ul className="hero-highlights">
+                {siteConfig.heroHighlights.map((highlight) => (
+                  <li key={highlight}>{highlight}</li>
+                ))}
+              </ul>
+            </div>
+
+            <figure className="hero-photo-wrap">
+              <Image
+                src="/profile.jpg"
+                alt={`${siteConfig.name} profile portrait`}
+                width={1080}
+                height={1350}
+                priority
+                className="hero-photo"
+              />
+            </figure>
           </div>
-
-          <ul className="hero-highlights">
-            {siteConfig.heroHighlights.map((highlight) => (
-              <li key={highlight}>{highlight}</li>
-            ))}
-          </ul>
         </section>
 
         <section id="about" className="panel about-panel">

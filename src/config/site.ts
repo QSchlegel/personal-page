@@ -3,32 +3,32 @@ import { env } from "@/lib/env";
 export const siteConfig = {
   name: "Quirin Schlegel",
   shortName: "QS",
-  title: "Quirin Schlegel | Product Engineer for AI Systems",
-  heroEyebrow: "Product Engineering for AI Systems",
-  heroTitle: "I design and ship reliable AI products that people actually use.",
+  title: "Quirin Schlegel | Open-Source Product Engineer",
+  heroEyebrow: "Open-Source Product Engineering",
+  heroTitle: "I build reliable public products for complex technical workflows.",
   description:
     "Portfolio for Quirin Schlegel. Product engineering across agent infrastructure, secure runtimes, and developer-first platforms.",
   heroDescription:
-    "I work at the edge of agent tooling, security boundaries, and developer experience. This site tracks active repos, technical direction, and ways to collaborate.",
+    "I lead and contribute to open-source projects where security, collaboration, and developer experience need to work together.",
   about:
-    "My work blends product taste with platform rigor: clear UX on top, strong system boundaries underneath. Recent projects focus on agent operations, policy controls, and blockchain-native tooling.",
+    "I turn complex infrastructure problems into clear product experiences, combining strong backend guardrails with practical, usable interfaces. I care about visual clarity and calm interaction design.",
   heroHighlights: [
-    "Agent runtime governance and observability",
-    "Secure-by-default architecture for automation",
-    "Developer workflows that stay fast under scale",
+    "Open-source leadership across multi-contributor builds",
+    "Security-aware full-stack delivery, from API boundaries to UX",
+    "Distributed systems and blockchain tooling with practical outcomes",
   ],
   approach: [
     {
-      title: "Product Direction",
-      description: "Define a sharp product loop first: who it serves, what risk it removes, and how success is measured.",
+      title: "Lead with Clarity",
+      description: "Define a simple product direction so collaborators can execute without ambiguity.",
     },
     {
-      title: "System Design",
-      description: "Build dependable infrastructure with explicit policy boundaries, predictable behavior, and traceability.",
+      title: "Build with Guardrails",
+      description: "Use explicit boundaries and reliable defaults to keep systems safe and predictable.",
     },
     {
-      title: "Execution",
-      description: "Ship iteratively with real user feedback and measurable quality gates, not one-off demos.",
+      title: "Ship in Public",
+      description: "Iterate transparently, document decisions, and improve from real-world feedback.",
     },
   ],
   skills: [
