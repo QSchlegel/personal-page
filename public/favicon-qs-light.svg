@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#EAF5FF" />
+  <text
+    x="50%"
+    y="50%"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-size="28"
+    font-weight="700"
+    fill="#0B1F3A"
+    font-family="Arial Black, Helvetica Neue, sans-serif"
+  >
+    QS
+  </text>
+</svg>

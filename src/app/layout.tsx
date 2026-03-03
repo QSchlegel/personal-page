@@ -20,6 +20,25 @@ const bodyFont = Rajdhani({
 export const metadata: Metadata = {
   title: siteConfig.title,
   description: siteConfig.description,
+  icons: {
+    icon: [
+      {
+        url: "/favicon-qs-light.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/favicon-qs-dark.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        url: "/favicon.ico",
+      },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon",
+  },
 };
 
 export default function RootLayout({
