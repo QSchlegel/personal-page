@@ -31,7 +31,6 @@ export function AuthPanel({ className = "" }: { className?: string }) {
     setMessage(null);
     const result = await authClient.passkey.addPasskey({
       name: "Portfolio Passkey",
-      authenticatorAttachment: "platform",
     });
 
     if (result.error) {

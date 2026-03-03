@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, ChevronDown, ChevronUp, ExternalLink, Globe, Github } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, ExternalLink, Globe, Github, Star } from "lucide-react";
 
 import { IframeEmbed } from "@/components/IframeEmbed";
 import type { TimelineProject, TimelineResponse } from "@/lib/types";
 
-function formatProjectDate(value: string): string {
+function formatProjectDate(value: string | null): string {
+  if (!value) {
+    return "n/a";
+  }
+
   const date = new Date(value);
   return date.toLocaleDateString("en-US", {
     month: "short",
@@ -14,23 +18,51 @@ function formatProjectDate(value: string): string {
   });
 }
 
+function formatSource(source: TimelineResponse["source"]): string {
+  if (source === "database") {
+    return "Cached + Overrides";
+  }
+
+  if (source === "github-live") {
+    return "GitHub Live";
+  }
+
+  return "Seed Fallback";
+}
+
 function ProjectCard({ project }: { project: TimelineProject }) {
   const [expanded, setExpanded] = useState(false);
+  const summary = project.summary ?? project.description ?? "No description available yet.";
+  const pushed = project.pushedAt ?? project.updatedAt;
 
   return (
     <article className="timeline-card">
       <header>
         <div className="timeline-title-row">
           <h3>{project.repoName}</h3>
-          <span>
-            <Calendar className="icon-sm" />
-            {formatProjectDate(project.createdAt)}
-          </span>
+          <div className="timeline-badges">
+            {project.language ? <span className="timeline-chip">{project.language}</span> : null}
+            {project.label ? <span className="timeline-chip timeline-chip-accent">{project.label}</span> : null}
+          </div>
         </div>
-        <p className="timeline-label">{project.label ?? "Project"}</p>
       </header>
 
-      <p>{project.summary ?? project.description ?? "No description available."}</p>
+      <p className="timeline-summary">{summary}</p>
+
+      <ul className="timeline-facts">
+        <li>
+          <Calendar className="icon-sm" />
+          Started {formatProjectDate(project.createdAt)}
+        </li>
+        <li>
+          <Calendar className="icon-sm" />
+          Updated {formatProjectDate(pushed)}
+        </li>
+        <li>
+          <Star className="icon-sm" />
+          {project.stars} star{project.stars === 1 ? "" : "s"}
+        </li>
+      </ul>
 
       <div className="timeline-meta-row">
         <a href={project.htmlUrl} target="_blank" rel="noreferrer">
@@ -46,7 +78,7 @@ function ProjectCard({ project }: { project: TimelineProject }) {
         {project.iframeUrl ? (
           <button type="button" onClick={() => setExpanded((value) => !value)}>
             {expanded ? <ChevronUp className="icon-sm" /> : <ChevronDown className="icon-sm" />}
-            {expanded ? "Hide Embedded UI" : "Show Embedded UI"}
+            {expanded ? "Hide Live Preview" : "Show Live Preview"}
           </button>
         ) : null}
       </div>
@@ -99,11 +131,14 @@ export function TimelineSection() {
     return showAll ? timeline.all : timeline.curated;
   }, [timeline, showAll]);
 
+  const featuredCount = timeline?.curated.length ?? 0;
+  const allCount = timeline?.all.length ?? 0;
+
   return (
     <section id="timeline" className="panel timeline-panel">
       <div className="section-heading">
         <h2>Project Timeline</h2>
-        <p>From foundational experiments to current production tracks.</p>
+        <p>Featured products first, with full repository history one click away.</p>
       </div>
 
       {error ? <p className="status-error">{error}</p> : null}
@@ -111,20 +146,37 @@ export function TimelineSection() {
 
       {timeline ? (
         <>
+          <div className="timeline-switcher">
+            <button
+              type="button"
+              className={!showAll ? "active" : ""}
+              onClick={() => setShowAll(false)}
+              aria-pressed={!showAll}
+            >
+              Featured ({featuredCount})
+            </button>
+            <button
+              type="button"
+              className={showAll ? "active" : ""}
+              onClick={() => setShowAll(true)}
+              aria-pressed={showAll}
+            >
+              All Repos ({allCount})
+            </button>
+          </div>
+
           <div className="timeline-grid">
-            {projects.map((project) => (
-              <ProjectCard key={project.repoName} project={project} />
-            ))}
+            {projects.length > 0 ? (
+              projects.map((project) => <ProjectCard key={project.repoName} project={project} />)
+            ) : (
+              <p className="status-muted">No projects to display.</p>
+            )}
           </div>
 
           <div className="timeline-actions">
-            <button type="button" onClick={() => setShowAll((value) => !value)}>
-              {showAll ? <ChevronUp className="icon-sm" /> : <ChevronDown className="icon-sm" />}
-              {showAll ? "Show Curated 8" : "Show All Projects"}
-            </button>
             <small>
               <ExternalLink className="icon-sm" />
-              Source: {timeline.source} • Synced {new Date(timeline.fetchedAt).toLocaleString("en-US")}
+              Source: {formatSource(timeline.source)} • Synced {new Date(timeline.fetchedAt).toLocaleString("en-US")}
             </small>
           </div>
         </>

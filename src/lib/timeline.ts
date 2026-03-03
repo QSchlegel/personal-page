@@ -15,58 +15,65 @@ const curatedSeed: Array<{
   {
     repoName: "TripWire",
     featuredOrder: 1,
-    label: "Monitoring",
-    summary: "A sensible request monitor with pragmatic operational focus.",
+    label: "Agent Safety",
+    summary:
+      "Guard framework for agent tool calls with policy enforcement, escalation, and anomaly detection across Node, Python, and edge runtimes.",
   },
   {
     repoName: "hive-mind",
     featuredOrder: 2,
-    label: "Multi-Agent Systems",
-    summary: "Coordination-first architecture for agent collaboration.",
+    label: "Bot Collaboration",
+    summary:
+      "Bot-native collaboration runtime with auth, worker pipelines, treasury flows, and callback delivery for hive-mind.club.",
   },
   {
     repoName: "OrchWiz",
     featuredOrder: 3,
-    label: "Orchestration",
-    summary: "A workflow-heavy TypeScript orchestration platform.",
+    label: "Agent Ops",
+    summary:
+      "Agent VPC platform for operating local and cloud runtimes with policy gates, adapter registries, and full execution traceability.",
   },
   {
     repoName: "wallet-enclave",
     featuredOrder: 4,
     label: "Security",
-    summary: "A secure wallet enclave experiment focused on safe boundaries.",
+    summary:
+      "Local capabilities API that protects wallet secrets while exposing controlled address, signing, transaction, and encryption flows.",
   },
   {
     repoName: "envy-",
     featuredOrder: 5,
     label: "DX Utility",
-    summary: "A lightweight utility and SPA for sharing env vars and secrets casually.",
+    summary: "A lightweight utility and SPA for sharing environment values and secrets with less setup friction.",
   },
   {
     repoName: "mine-dine",
     featuredOrder: 6,
-    label: "Product",
-    summary: "An end-to-end product exploration in TypeScript.",
+    label: "Marketplace",
+    summary:
+      "Supper-club platform with host and guest matching, dinner listings, payments, reviews, and messaging built in Next.js.",
   },
   {
     repoName: "mesh-mcp",
     featuredOrder: 7,
     label: "MCP",
-    summary: "Model Context Protocol surface for Mesh workflows.",
+    summary:
+      "MCP server exposing Mesh SDK Cardano tools so AI clients can query balances, UTXOs, and addresses through a live endpoint.",
     iframeUrl: "https://mesh-mcp.vercel.app",
   },
   {
     repoName: "blockfrost-mcp",
     featuredOrder: 8,
     label: "MCP",
-    summary: "Blockfrost integrations via MCP with practical developer ergonomics.",
+    summary:
+      "MCP wrapper over Blockfrost that gives AI clients broad Cardano address, account, asset, block, and governance tooling.",
     iframeUrl: "https://blockfrost-mcp.vercel.app",
   },
   {
     repoName: "script-explorer",
     featuredOrder: 999,
-    label: "Tooling",
-    summary: "Interactive script browsing and exploration tooling.",
+    label: "Visualization",
+    summary: "Cardano script visualizer that makes on-chain behavior easier to inspect using Blockfrost-backed data.",
     iframeUrl: "https://www.script-explorer.com",
   },
 ];

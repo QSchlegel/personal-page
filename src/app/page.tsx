@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Github, Mail, MessageSquare } from "lucide-react";
+import { ArrowRight, Github, Mail, MessageSquare } from "lucide-react";
 
 import { FloatingAuthChat } from "@/components/FloatingAuthChat";
 import { ThreeBackground } from "@/components/ThreeBackground";
@@ -13,21 +13,58 @@ export default function HomePage() {
 
       <header className="top-nav">
         <Link href="/" className="brand">
-          {siteConfig.name}
+          {siteConfig.shortName}
+        </Link>
+
+        <nav className="top-nav-links" aria-label="Primary">
+          <a href="#about">About</a>
+          <a href="#timeline">Projects</a>
+          <a href="#contact">Contact</a>
+        </nav>
+
+        <Link href="/comms" className="top-nav-cta">
+          <MessageSquare className="icon-sm" />
+          Secure Chat
         </Link>
       </header>
 
       <main className="main-content">
         <section className="hero panel">
-          <p className="eyebrow">Portfolio + Communication Hub</p>
+          <p className="eyebrow">{siteConfig.heroEyebrow}</p>
           <h1>{siteConfig.heroTitle}</h1>
-          <p>{siteConfig.heroDescription}</p>
+          <p className="hero-lead">{siteConfig.heroDescription}</p>
+
+          <div className="hero-actions">
+            <a href="#timeline">
+              <ArrowRight className="icon-sm" />
+              Explore Projects
+            </a>
+            <Link href="/comms">
+              <MessageSquare className="icon-sm" />
+              Start Secure Chat
+            </Link>
+          </div>
+
+          <ul className="hero-highlights">
+            {siteConfig.heroHighlights.map((highlight) => (
+              <li key={highlight}>{highlight}</li>
+            ))}
+          </ul>
         </section>
 
-        <section id="about" className="panel">
+        <section id="about" className="panel about-panel">
           <div className="section-heading">
-            <h2>About</h2>
+            <h2>How I Work</h2>
             <p>{siteConfig.about}</p>
+          </div>
+
+          <div className="about-grid">
+            {siteConfig.approach.map((item) => (
+              <article key={item.title} className="about-card">
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </article>
+            ))}
           </div>
 
           <div className="skills-cloud">
@@ -42,25 +79,25 @@ export default function HomePage() {
         <section id="contact" className="panel">
           <div className="section-heading">
             <h2>Contact</h2>
-            <p>Start an authenticated chat, or reach out through social channels.</p>
+            <p>Open a secure thread or reach out directly for product, platform, or collaboration work.</p>
           </div>
 
           <div className="contact-actions">
             <Link href="/comms">
               <MessageSquare className="icon-sm" />
-              Contact Chat
+              Open Secure Chat
             </Link>
             <a href={siteConfig.contact.twitter} target="_blank" rel="noreferrer">
               <span className="icon-x">X</span>
-              X
+              X / Updates
             </a>
             <a href={siteConfig.contact.github} target="_blank" rel="noreferrer">
               <Github className="icon-sm" />
-              GitHub
+              GitHub Repos
             </a>
             <a href={`mailto:${siteConfig.contact.email}`}>
               <Mail className="icon-sm" />
-              Email
+              Email Direct
             </a>
           </div>
         </section>

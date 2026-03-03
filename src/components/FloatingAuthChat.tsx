@@ -63,7 +63,6 @@ export function FloatingAuthChat() {
   const registerPasskey = useCallback(async () => {
     const result = await authClient.passkey.addPasskey({
       name: "Portfolio Passkey",
-      authenticatorAttachment: "platform",
     });
 
     if (!result.error) {
