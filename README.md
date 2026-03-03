@@ -151,6 +151,7 @@ Where `keyFingerprint = sha256(secret)` stored server-side.
 
 - Deploy as a Next.js SSR service.
 - Use Railway PostgreSQL for `DATABASE_URL`.
+- The included [`railway.json`](./railway.json) runs `npm ci --include=dev` during build to ensure dependencies used by the UI and TypeScript build are always installed from lockfile.
 - Configure cron at `0 0 * * *` (UTC) to call:
   - `POST /api/internal/cron/timeline-sync`
   - Header: `x-cron-secret: $CRON_SECRET`
