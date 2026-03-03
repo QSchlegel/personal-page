@@ -3,43 +3,43 @@ import { env } from "@/lib/env";
 export const siteConfig = {
   name: "Quirin Schlegel",
   shortName: "QS",
-  title: "Quirin Schlegel | Open-Source Product Engineer",
-  heroEyebrow: "Open-Source Product Engineering",
-  heroTitle: "I build reliable public products for complex technical workflows.",
+  title: "Quirin Schlegel | Product Engineer",
+  heroEyebrow: "Product Engineering",
+  heroTitle: "I turn complex systems into products people actually enjoy using.",
   description:
-    "Portfolio for Quirin Schlegel. Product engineering across agent infrastructure, secure runtimes, and developer-first platforms.",
+    "Portfolio for Quirin Schlegel. Product engineering across secure runtimes, agent workflows, and developer-first platforms.",
   heroDescription:
-    "I lead and contribute to open-source projects where security, collaboration, and developer experience need to work together.",
+    "From architecture to interaction design, I ship clear and reliable software for open-source teams working on hard technical problems.",
   about:
-    "I turn complex infrastructure problems into clear product experiences, combining strong backend guardrails with practical, usable interfaces. I care about visual clarity and calm interaction design.",
+    "I focus on clarity, speed, and trust. The goal is simple: make powerful systems feel understandable, safe, and effortless to use.",
   heroHighlights: [
-    "Open-source leadership across multi-contributor builds",
-    "Security-aware full-stack delivery, from API boundaries to UX",
-    "Distributed systems and blockchain tooling with practical outcomes",
+    "End-to-end delivery across backend guardrails and front-end experience",
+    "Security-aware product decisions that hold up in production",
+    "Open-source collaboration built for momentum and maintainability",
   ],
   approach: [
     {
-      title: "Lead with Clarity",
-      description: "Define a simple product direction so collaborators can execute without ambiguity.",
+      title: "Set Direction",
+      description: "Translate complex technical constraints into a focused product plan with clear outcomes.",
     },
     {
-      title: "Build with Guardrails",
-      description: "Use explicit boundaries and reliable defaults to keep systems safe and predictable.",
+      title: "Design For Flow",
+      description: "Remove friction in the interaction layer so users can stay in the work, not the interface.",
     },
     {
-      title: "Ship in Public",
-      description: "Iterate transparently, document decisions, and improve from real-world feedback.",
+      title: "Ship With Confidence",
+      description: "Build with practical guardrails and iterate quickly using real-world feedback.",
     },
   ],
   skills: [
     "TypeScript",
     "Next.js",
     "Prisma + Postgres",
-    "Agent Infrastructure",
+    "AI Workflow Products",
     "Distributed Systems",
     "Developer Experience",
-    "AI Product Workflows",
-    "Security-focused Architecture",
+    "Secure Runtime Design",
+    "Platform Engineering",
   ],
   contact: {
     github: env.PUBLIC_GITHUB_URL,

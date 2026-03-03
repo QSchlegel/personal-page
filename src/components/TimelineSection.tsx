@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, ChevronDown, ChevronUp, ExternalLink, Globe, Github, Star } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { IframeEmbed } from "@/components/IframeEmbed";
+import { cardReveal, easingStandard, sectionReveal, springSoft, staggerContainer } from "@/lib/motion";
 import type { TimelineProject, TimelineResponse } from "@/lib/types";
 
 function formatProjectDate(value: string | null): string {
@@ -30,13 +32,22 @@ function formatSource(source: TimelineResponse["source"]): string {
   return "Seed Fallback";
 }
 
-function ProjectCard({ project }: { project: TimelineProject }) {
+function ProjectCard({ project, index }: { project: TimelineProject; index: number }) {
   const [expanded, setExpanded] = useState(false);
+  const reduceMotion = useReducedMotion();
   const summary = project.summary ?? project.description ?? "No description available yet.";
   const pushed = project.pushedAt ?? project.updatedAt;
 
   return (
-    <article className="timeline-card">
+    <motion.article
+      className="timeline-card"
+      layout={!reduceMotion}
+      initial={reduceMotion ? false : "hidden"}
+      animate={reduceMotion ? undefined : "visible"}
+      variants={cardReveal}
+      custom={index}
+      whileHover={reduceMotion ? undefined : { y: -3, transition: springSoft }}
+    >
       <header>
         <div className="timeline-title-row">
           <h3>{project.repoName}</h3>
@@ -76,15 +87,28 @@ function ProjectCard({ project }: { project: TimelineProject }) {
           </a>
         ) : null}
         {project.iframeUrl ? (
-          <button type="button" onClick={() => setExpanded((value) => !value)}>
+          <button type="button" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
             {expanded ? <ChevronUp className="icon-sm" /> : <ChevronDown className="icon-sm" />}
-            {expanded ? "Hide Live Preview" : "Show Live Preview"}
+            {expanded ? "Hide Preview" : "Show Preview"}
           </button>
         ) : null}
       </div>
 
-      {expanded && project.iframeUrl ? <IframeEmbed src={project.iframeUrl} title={`${project.repoName} embedded UI`} /> : null}
-    </article>
+      <AnimatePresence initial={false}>
+        {expanded && project.iframeUrl ? (
+          <motion.div
+            key="preview"
+            className="timeline-preview-wrap"
+            initial={reduceMotion ? false : { opacity: 0, height: 0, marginTop: 0 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, height: "auto", marginTop: 14 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.34, ease: easingStandard }}
+          >
+            <IframeEmbed src={project.iframeUrl} title={`${project.repoName} embedded UI`} />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </motion.article>
   );
 }
 
@@ -92,6 +116,7 @@ export function TimelineSection() {
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -135,10 +160,17 @@ export function TimelineSection() {
   const allCount = timeline?.all.length ?? 0;
 
   return (
-    <section id="timeline" className="panel timeline-panel">
+    <motion.section
+      id="timeline"
+      className="panel timeline-panel"
+      initial={reduceMotion ? false : "hidden"}
+      whileInView={reduceMotion ? undefined : "visible"}
+      viewport={{ once: true, amount: 0.15 }}
+      variants={sectionReveal}
+    >
       <div className="section-heading">
         <h2>Project Timeline</h2>
-        <p>Featured products first, with full repository history one click away.</p>
+        <p>Featured work first, with full repository history available when you want more depth.</p>
       </div>
 
       {error ? <p className="status-error">{error}</p> : null}
@@ -146,7 +178,7 @@ export function TimelineSection() {
 
       {timeline ? (
         <>
-          <div className="timeline-switcher">
+          <div className="timeline-switcher" role="tablist" aria-label="Project scope">
             <button
               type="button"
               className={!showAll ? "active" : ""}
@@ -165,13 +197,22 @@ export function TimelineSection() {
             </button>
           </div>
 
-          <div className="timeline-grid">
-            {projects.length > 0 ? (
-              projects.map((project) => <ProjectCard key={project.repoName} project={project} />)
-            ) : (
-              <p className="status-muted">No projects to display.</p>
-            )}
-          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={showAll ? "all" : "featured"}
+              className="timeline-grid"
+              variants={staggerContainer}
+              initial={reduceMotion ? false : "hidden"}
+              animate={reduceMotion ? undefined : "visible"}
+              exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.16 } }}
+            >
+              {projects.length > 0 ? (
+                projects.map((project, index) => <ProjectCard key={project.repoName} project={project} index={index} />)
+              ) : (
+                <p className="status-muted">No projects to display.</p>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           <div className="timeline-actions">
             <small>
@@ -181,6 +222,6 @@ export function TimelineSection() {
           </div>
         </>
       ) : null}
-    </section>
+    </motion.section>
   );
 }

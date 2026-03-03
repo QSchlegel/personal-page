@@ -2,8 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { MessageCircle, Plus, Send } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { AuthPanel } from "@/components/AuthPanel";
+import { cardReveal, easingStandard, springSoft } from "@/lib/motion";
 import { authClient } from "@/lib/auth-client";
 import type { ThreadMessage, ThreadSummary } from "@/lib/types";
 
@@ -45,9 +47,10 @@ interface SecureTarget {
 
 interface CommsWorkspaceProps {
   embedded?: boolean;
+  showPageHeading?: boolean;
 }
 
-export function CommsWorkspace({ embedded = false }: CommsWorkspaceProps) {
+export function CommsWorkspace({ embedded = false, showPageHeading = true }: CommsWorkspaceProps) {
   const { data: session, isPending } = authClient.useSession();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export function CommsWorkspace({ embedded = false }: CommsWorkspaceProps) {
   const [newThreadMessage, setNewThreadMessage] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
   const [isCreatingThread, setIsCreatingThread] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const signedIn = Boolean(session?.user?.id);
   const currentUserId = session?.user.id ?? "";
@@ -233,6 +237,7 @@ export function CommsWorkspace({ embedded = false }: CommsWorkspaceProps) {
 
   async function onSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setStatus(null);
 
     if (!selectedThreadId || !draftMessage.trim()) {
       return;
@@ -271,7 +276,7 @@ export function CommsWorkspace({ embedded = false }: CommsWorkspaceProps) {
 
     return (
       <section className="panel">
-        <h1>Comms</h1>
+        {showPageHeading ? <h1>Comms</h1> : null}
         <p className="status-muted">Sign in to access authenticated private threads.</p>
         <AuthPanel />
       </section>
@@ -279,16 +284,34 @@ export function CommsWorkspace({ embedded = false }: CommsWorkspaceProps) {
   }
 
   return (
-    <section className="panel comms-layout">
-      <div className="section-heading">
-        <h1>Authenticated Comms</h1>
-        <p>Private 1:1 threads with audit-backed exchange for QS and QSBot.</p>
-      </div>
+    <motion.section
+      className="panel comms-layout"
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: easingStandard }}
+    >
+      {showPageHeading ? (
+        <div className="section-heading">
+          <h1>Authenticated Comms</h1>
+          <p>Private 1:1 threads with audit-backed exchange for QS and QSBot.</p>
+        </div>
+      ) : null}
 
-      {status ? <p className="status-error">{status}</p> : null}
+      <AnimatePresence>
+        {status ? (
+          <motion.p
+            className="status-error"
+            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+          >
+            {status}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
 
       <div className="comms-grid">
-        <aside className="comms-sidebar">
+        <motion.aside className="comms-sidebar" layout={!reduceMotion}>
           <h2>
             <MessageCircle className="icon-sm" />
             Threads
@@ -299,39 +322,55 @@ export function CommsWorkspace({ embedded = false }: CommsWorkspaceProps) {
               <h3>Start Secure Chat</h3>
               <p className="status-muted">Choose QS for direct conversation or QSBot for automated replies.</p>
               <div className="secure-targets-grid">
-                {secureTargets.map((target) => (
-                  <button
+                {secureTargets.map((target, index) => (
+                  <motion.button
                     key={target.id}
                     type="button"
                     className="secure-target-button"
                     onClick={() => void onCreateSecureTargetThread(target)}
                     disabled={isCreatingThread}
                     aria-label={`Start secure chat with ${target.label}`}
+                    variants={cardReveal}
+                    custom={index}
+                    initial={reduceMotion ? false : "hidden"}
+                    animate={reduceMotion ? undefined : "visible"}
+                    whileHover={reduceMotion ? undefined : { y: -2, transition: springSoft }}
                   >
                     <strong>{target.label}</strong>
                     <span>{target.description}</span>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
           ) : null}
 
           <ul>
-            {threads.map((thread) => {
-              const other = thread.participants.find((participant) => participant.id !== currentUserId);
-              return (
-                <li key={thread.id}>
-                  <button
-                    type="button"
-                    className={thread.id === selectedThreadId ? "active" : ""}
-                    onClick={() => setSelectedThreadId(thread.id)}
+            {threads.length > 0 ? (
+              threads.map((thread, index) => {
+                const other = thread.participants.find((participant) => participant.id !== currentUserId);
+                return (
+                  <motion.li
+                    key={thread.id}
+                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                    animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, delay: index * 0.02 }}
                   >
-                    <strong>{other?.name ?? other?.email ?? "Unknown"}</strong>
-                    <span>{thread.status}</span>
-                  </button>
-                </li>
-              );
-            })}
+                    <button
+                      type="button"
+                      className={thread.id === selectedThreadId ? "active" : ""}
+                      onClick={() => setSelectedThreadId(thread.id)}
+                    >
+                      <strong>{other?.name ?? other?.email ?? "Unknown"}</strong>
+                      <span>{thread.status}</span>
+                    </button>
+                  </motion.li>
+                );
+              })
+            ) : (
+              <li>
+                <p className="status-muted">No threads yet. Start one using the quick actions below.</p>
+              </li>
+            )}
           </ul>
 
           <form className="inline-form" onSubmit={onCreateThread}>
@@ -357,25 +396,44 @@ export function CommsWorkspace({ embedded = false }: CommsWorkspaceProps) {
               {isCreatingThread ? "Creating..." : "Create"}
             </button>
           </form>
-        </aside>
+        </motion.aside>
 
-        <div className="comms-thread">
+        <motion.div className="comms-thread" layout={!reduceMotion}>
           <header>
             <h2>{selectedThread ? `Thread ${selectedThread.id.slice(0, 8)}` : "Select a thread"}</h2>
-            <p>{selectedThread ? `Status: ${selectedThread.status}` : ""}</p>
+            <p>{selectedThread ? `Status: ${selectedThread.status}` : "Pick a thread to read and reply."}</p>
           </header>
 
-          <div className="message-list">
-            {messages.map((message) => {
-              const mine = message.senderUserId === currentUserId;
-              return (
-                <article key={message.id} className={mine ? "message mine" : "message"}>
-                  <span>{message.senderType}</span>
-                  <p>{message.content}</p>
-                  <time>{new Date(message.createdAt).toLocaleString("en-US")}</time>
-                </article>
-              );
-            })}
+          <div className="message-list" aria-live="polite">
+            <AnimatePresence>
+              {messages.length > 0 ? (
+                messages.map((message) => {
+                  const mine = message.senderUserId === currentUserId;
+                  return (
+                    <motion.article
+                      key={message.id}
+                      className={mine ? "message mine" : "message"}
+                      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                      animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <span>{message.senderType}</span>
+                      <p>{message.content}</p>
+                      <time>{new Date(message.createdAt).toLocaleString("en-US")}</time>
+                    </motion.article>
+                  );
+                })
+              ) : (
+                <motion.p
+                  key="empty"
+                  className="status-muted"
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  {selectedThreadId ? "No messages yet. Send the first message." : "Select a thread to view messages."}
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
 
           {selectedThreadId ? (
@@ -392,8 +450,8 @@ export function CommsWorkspace({ embedded = false }: CommsWorkspaceProps) {
               </button>
             </form>
           ) : null}
-        </div>
+        </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }

@@ -2,21 +2,24 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { Clock3, KeyRound, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { AuthPanel } from "@/components/AuthPanel";
 import { authClient } from "@/lib/auth-client";
+import { easingStandard } from "@/lib/motion";
 import type { BotKeyMetadata } from "@/lib/types";
 
 interface KeysResponse {
   keys: BotKeyMetadata[];
 }
 
-export function BotSettingsPanel() {
+export function BotSettingsPanel({ showPageHeading = true }: { showPageHeading?: boolean }) {
   const { data: session, isPending } = authClient.useSession();
   const [keys, setKeys] = useState<BotKeyMetadata[]>([]);
   const [name, setName] = useState("Default Bot Key");
   const [latestSecret, setLatestSecret] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
 
   const signedIn = Boolean(session?.user?.id);
 
@@ -100,7 +103,7 @@ export function BotSettingsPanel() {
   if (!signedIn) {
     return (
       <section className="panel">
-        <h1>Bot Settings</h1>
+        {showPageHeading ? <h1>Bot Settings</h1> : null}
         <p className="status-muted">Sign in to manage bot credentials.</p>
         <AuthPanel />
       </section>
@@ -108,13 +111,31 @@ export function BotSettingsPanel() {
   }
 
   return (
-    <section className="panel">
-      <div className="section-heading">
-        <h1>Bot Settings</h1>
-        <p>Create and revoke API keys for one bot identity per user.</p>
-      </div>
+    <motion.section
+      className="panel"
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: easingStandard }}
+    >
+      {showPageHeading ? (
+        <div className="section-heading">
+          <h1>Bot Settings</h1>
+          <p>Create and revoke API keys for one bot identity per user.</p>
+        </div>
+      ) : null}
 
-      {status ? <p className="status-error">{status}</p> : null}
+      <AnimatePresence>
+        {status ? (
+          <motion.p
+            className="status-error"
+            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+          >
+            {status}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
 
       <form className="inline-form" onSubmit={createKey}>
         <label>
@@ -128,39 +149,53 @@ export function BotSettingsPanel() {
       </form>
 
       {latestSecret ? (
-        <div className="secret-callout">
+        <motion.div
+          className="secret-callout"
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        >
           <strong>New key secret (shown once)</strong>
           <code>{latestSecret}</code>
-        </div>
+        </motion.div>
       ) : null}
 
       <div className="admin-list">
-        {keys.map((key) => (
-          <article key={key.id} className="admin-item">
-            <header>
-              <h2>{key.name}</h2>
-              <span>{key.revokedAt ? "Revoked" : "Active"}</span>
-            </header>
+        {keys.length > 0 ? (
+          keys.map((key, index) => (
+            <motion.article
+              key={key.id}
+              className="admin-item"
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, delay: index * 0.03 }}
+            >
+              <header>
+                <h2>{key.name}</h2>
+                <span>{key.revokedAt ? "Revoked" : "Active"}</span>
+              </header>
 
-            <p className="meta-line">
-              <KeyRound className="icon-sm" />
-              <code>{key.keyId}</code>
-            </p>
-            <p>Created: {new Date(key.createdAt).toLocaleString("en-US")}</p>
-            <p className="meta-line">
-              <Clock3 className="icon-sm" />
-              Last used: {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString("en-US") : "Never"}
-            </p>
+              <p className="meta-line">
+                <KeyRound className="icon-sm" />
+                <code>{key.keyId}</code>
+              </p>
+              <p>Created: {new Date(key.createdAt).toLocaleString("en-US")}</p>
+              <p className="meta-line">
+                <Clock3 className="icon-sm" />
+                Last used: {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString("en-US") : "Never"}
+              </p>
 
-            {!key.revokedAt ? (
-              <button type="button" onClick={() => revokeKey(key.keyId)}>
-                <Trash2 className="icon-sm" />
-                Revoke Key
-              </button>
-            ) : null}
-          </article>
-        ))}
+              {!key.revokedAt ? (
+                <button type="button" onClick={() => revokeKey(key.keyId)}>
+                  <Trash2 className="icon-sm" />
+                  Revoke Key
+                </button>
+              ) : null}
+            </motion.article>
+          ))
+        ) : (
+          <p className="status-muted">No keys yet. Create one to start bot integrations.</p>
+        )}
       </div>
-    </section>
+    </motion.section>
   );
 }

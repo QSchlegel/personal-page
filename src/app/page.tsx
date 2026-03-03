@@ -1,125 +1,175 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Github, Mail, MessageSquare } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 
-import { FloatingAuthChat } from "@/components/FloatingAuthChat";
-import { ThreeBackground } from "@/components/ThreeBackground";
 import { TimelineSection } from "@/components/TimelineSection";
 import { siteConfig } from "@/config/site";
+import { cardReveal, sectionReveal, springSoft, staggerContainer } from "@/lib/motion";
 
 export default function HomePage() {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <div className="page-shell">
-      <ThreeBackground />
+    <div className="home-main">
+      <motion.section
+        className="panel hero"
+        initial={reduceMotion ? false : "hidden"}
+        whileInView={reduceMotion ? undefined : "visible"}
+        viewport={{ once: true, amount: 0.3 }}
+        variants={sectionReveal}
+      >
+        <div className="hero-grid">
+          <div className="hero-copy">
+            <p className="eyebrow">{siteConfig.heroEyebrow}</p>
+            <h1>{siteConfig.heroTitle}</h1>
+            <p className="hero-lead">{siteConfig.heroDescription}</p>
 
-      <header className="top-nav">
-        <Link href="/" className="brand">
-          {siteConfig.shortName}
-        </Link>
-
-        <nav className="top-nav-links" aria-label="Primary">
-          <a href="#about">About</a>
-          <a href="#timeline">Projects</a>
-          <a href="#contact">Contact</a>
-        </nav>
-
-        <Link href="/comms" className="top-nav-cta">
-          <MessageSquare className="icon-sm" />
-          Secure Chat
-        </Link>
-      </header>
-
-      <main className="main-content">
-        <section className="hero panel">
-          <div className="hero-grid">
-            <div className="hero-copy">
-              <p className="eyebrow">{siteConfig.heroEyebrow}</p>
-              <h1>{siteConfig.heroTitle}</h1>
-              <p className="hero-lead">{siteConfig.heroDescription}</p>
-
-              <div className="hero-actions">
-                <a href="#timeline">
-                  <ArrowRight className="icon-sm" />
-                  Explore Projects
-                </a>
+            <motion.div
+              className="hero-actions"
+              variants={staggerContainer}
+              initial={reduceMotion ? false : "hidden"}
+              whileInView={reduceMotion ? undefined : "visible"}
+              viewport={{ once: true, amount: 0.45 }}
+            >
+              <motion.a variants={cardReveal} custom={0} href="#timeline" whileHover={{ y: -2 }} transition={springSoft}>
+                <ArrowRight className="icon-sm" />
+                Explore Projects
+              </motion.a>
+              <motion.div variants={cardReveal} custom={1}>
                 <Link href="/comms">
                   <MessageSquare className="icon-sm" />
                   Start Secure Chat
                 </Link>
-              </div>
+              </motion.div>
+            </motion.div>
 
-              <ul className="hero-highlights">
-                {siteConfig.heroHighlights.map((highlight) => (
-                  <li key={highlight}>{highlight}</li>
-                ))}
-              </ul>
-            </div>
-
-            <figure className="hero-photo-wrap">
-              <Image
-                src="/profile.jpg"
-                alt={`${siteConfig.name} profile portrait`}
-                width={1080}
-                height={1350}
-                priority
-                className="hero-photo"
-              />
-            </figure>
-          </div>
-        </section>
-
-        <section id="about" className="panel about-panel">
-          <div className="section-heading">
-            <h2>How I Work</h2>
-            <p>{siteConfig.about}</p>
+            <motion.ul
+              className="hero-highlights"
+              variants={staggerContainer}
+              initial={reduceMotion ? false : "hidden"}
+              whileInView={reduceMotion ? undefined : "visible"}
+              viewport={{ once: true, amount: 0.35 }}
+            >
+              {siteConfig.heroHighlights.map((highlight, index) => (
+                <motion.li key={highlight} variants={cardReveal} custom={index}>
+                  {highlight}
+                </motion.li>
+              ))}
+            </motion.ul>
           </div>
 
-          <div className="about-grid">
-            {siteConfig.approach.map((item) => (
-              <article key={item.title} className="about-card">
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-              </article>
-            ))}
-          </div>
+          <motion.figure
+            className="hero-photo-wrap"
+            initial={reduceMotion ? false : { opacity: 0, x: 20, scale: 0.96 }}
+            whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, scale: 1 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.75 }}
+          >
+            <Image
+              src="/profile.jpg"
+              alt={`${siteConfig.name} profile portrait`}
+              width={1080}
+              height={1350}
+              priority
+              className="hero-photo"
+            />
+          </motion.figure>
+        </div>
+      </motion.section>
 
-          <div className="skills-cloud">
-            {siteConfig.skills.map((skill) => (
-              <span key={skill}>{skill}</span>
-            ))}
-          </div>
-        </section>
+      <motion.section
+        id="about"
+        className="panel about-panel"
+        initial={reduceMotion ? false : "hidden"}
+        whileInView={reduceMotion ? undefined : "visible"}
+        viewport={{ once: true, amount: 0.2 }}
+        variants={sectionReveal}
+      >
+        <div className="section-heading">
+          <h2>How I Work</h2>
+          <p>{siteConfig.about}</p>
+        </div>
 
-        <TimelineSection />
+        <motion.div
+          className="about-grid"
+          variants={staggerContainer}
+          initial={reduceMotion ? false : "hidden"}
+          whileInView={reduceMotion ? undefined : "visible"}
+          viewport={{ once: true, amount: 0.25 }}
+        >
+          {siteConfig.approach.map((item, index) => (
+            <motion.article
+              key={item.title}
+              className="about-card"
+              variants={cardReveal}
+              custom={index}
+              whileHover={reduceMotion ? undefined : { y: -4 }}
+              transition={springSoft}
+            >
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </motion.article>
+          ))}
+        </motion.div>
 
-        <section id="contact" className="panel">
-          <div className="section-heading">
-            <h2>Contact</h2>
-            <p>Open a secure thread or reach out directly for product, platform, or collaboration work.</p>
-          </div>
+        <div className="skills-cloud" aria-label="Core skills">
+          {siteConfig.skills.map((skill) => (
+            <span key={skill}>{skill}</span>
+          ))}
+        </div>
+      </motion.section>
 
-          <div className="contact-actions">
+      <TimelineSection />
+
+      <motion.section
+        id="contact"
+        className="panel"
+        initial={reduceMotion ? false : "hidden"}
+        whileInView={reduceMotion ? undefined : "visible"}
+        viewport={{ once: true, amount: 0.2 }}
+        variants={sectionReveal}
+      >
+        <div className="section-heading">
+          <h2>Let&apos;s Build</h2>
+          <p>Open a secure thread or reach out directly to collaborate on product and platform work.</p>
+        </div>
+
+        <motion.div
+          className="contact-actions"
+          variants={staggerContainer}
+          initial={reduceMotion ? false : "hidden"}
+          whileInView={reduceMotion ? undefined : "visible"}
+          viewport={{ once: true, amount: 0.35 }}
+        >
+          <motion.div variants={cardReveal} custom={0}>
             <Link href="/comms">
               <MessageSquare className="icon-sm" />
               Open Secure Chat
             </Link>
+          </motion.div>
+          <motion.div variants={cardReveal} custom={1}>
             <a href={siteConfig.contact.twitter} target="_blank" rel="noreferrer">
               <span className="icon-x">X</span>
               X / Updates
             </a>
+          </motion.div>
+          <motion.div variants={cardReveal} custom={2}>
             <a href={siteConfig.contact.github} target="_blank" rel="noreferrer">
               <Github className="icon-sm" />
               GitHub Repos
             </a>
+          </motion.div>
+          <motion.div variants={cardReveal} custom={3}>
             <a href={`mailto:${siteConfig.contact.email}`}>
               <Mail className="icon-sm" />
               Email Direct
             </a>
-          </div>
-        </section>
-      </main>
-
-      <FloatingAuthChat />
+          </motion.div>
+        </motion.div>
+      </motion.section>
     </div>
   );
 }

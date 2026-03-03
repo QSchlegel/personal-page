@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Fingerprint, LoaderCircle, Minimize2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { CommsWorkspace } from "@/components/CommsWorkspace";
 import { authClient } from "@/lib/auth-client";
@@ -28,6 +29,7 @@ export function FloatingAuthChat() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [hasCallbackIntent, setHasCallbackIntent] = useState(false);
   const callbackIntentHandled = useRef(false);
+  const reduceMotion = useReducedMotion();
 
   const isSignedIn = Boolean(session?.user?.id);
 
@@ -172,7 +174,12 @@ export function FloatingAuthChat() {
 
   return (
     <>
-      <div className="floating-chat-dock">
+      <motion.div
+        className="floating-chat-dock"
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.34 }}
+      >
         <button
           type="button"
           className="floating-chat-trigger"
@@ -184,28 +191,54 @@ export function FloatingAuthChat() {
           {isBusy ? <LoaderCircle className="icon-sm icon-spin" /> : <Fingerprint className="icon-sm" />}
           {isBusy ? "Securing..." : "Secure Chat"}
         </button>
-        {status ? <p className="floating-chat-status">{status}</p> : null}
-      </div>
 
-      {isChatOpen ? (
-        <div
-          className="floating-chat-overlay"
-          role="presentation"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              setIsChatOpen(false);
-            }
-          }}
-        >
-          <div className="floating-chat-modal" role="dialog" aria-modal="true" aria-label="Authenticated chat">
-            <button type="button" className="floating-chat-collapse" onClick={() => setIsChatOpen(false)}>
-              <Minimize2 className="icon-sm" />
-              Collapse
-            </button>
-            <CommsWorkspace embedded />
-          </div>
-        </div>
-      ) : null}
+        <AnimatePresence>
+          {status ? (
+            <motion.p
+              className="floating-chat-status"
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+            >
+              {status}
+            </motion.p>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
+
+      <AnimatePresence>
+        {isChatOpen ? (
+          <motion.div
+            className="floating-chat-overlay"
+            role="presentation"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                setIsChatOpen(false);
+              }
+            }}
+          >
+            <motion.div
+              className="floating-chat-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Authenticated chat"
+              initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.98 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14, scale: 0.98 }}
+              transition={{ duration: 0.25 }}
+            >
+              <button type="button" className="floating-chat-collapse" onClick={() => setIsChatOpen(false)}>
+                <Minimize2 className="icon-sm" />
+                Collapse
+              </button>
+              <CommsWorkspace embedded showPageHeading={false} />
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </>
   );
 }
