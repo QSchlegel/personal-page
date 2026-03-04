@@ -60,7 +60,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <motion.section
               key={`intro-${pathname}`}
               className="panel page-intro"
-              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              initial={false}
               animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
               transition={{ duration: 0.42, ease: easingStandard }}

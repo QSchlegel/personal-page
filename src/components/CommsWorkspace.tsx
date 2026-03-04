@@ -286,7 +286,7 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
   return (
     <motion.section
       className="panel comms-layout"
-      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      initial={false}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: easingStandard }}
     >
@@ -301,7 +301,7 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
         {status ? (
           <motion.p
             className="status-error"
-            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+            initial={false}
             animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
           >
@@ -332,7 +332,7 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
                     aria-label={`Start secure chat with ${target.label}`}
                     variants={cardReveal}
                     custom={index}
-                    initial={reduceMotion ? false : "hidden"}
+                    initial={false}
                     animate={reduceMotion ? undefined : "visible"}
                     whileHover={reduceMotion ? undefined : { y: -2, transition: springSoft }}
                   >
@@ -351,7 +351,7 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
                 return (
                   <motion.li
                     key={thread.id}
-                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                    initial={false}
                     animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.22, delay: index * 0.02 }}
                   >
@@ -413,7 +413,7 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
                     <motion.article
                       key={message.id}
                       className={mine ? "message mine" : "message"}
-                      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                      initial={false}
                       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                       transition={{ duration: 0.2 }}
                     >
@@ -427,7 +427,7 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
                 <motion.p
                   key="empty"
                   className="status-muted"
-                  initial={reduceMotion ? false : { opacity: 0 }}
+                  initial={false}
                   animate={{ opacity: 1 }}
                 >
                   {selectedThreadId ? "No messages yet. Send the first message." : "Select a thread to view messages."}

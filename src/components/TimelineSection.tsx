@@ -42,7 +42,7 @@ function ProjectCard({ project, index }: { project: TimelineProject; index: numb
     <motion.article
       className="timeline-card"
       layout={!reduceMotion}
-      initial={reduceMotion ? false : "hidden"}
+      initial={false}
       animate={reduceMotion ? undefined : "visible"}
       variants={cardReveal}
       custom={index}
@@ -163,7 +163,7 @@ export function TimelineSection() {
     <motion.section
       id="timeline"
       className="panel timeline-panel"
-      initial={reduceMotion ? false : "hidden"}
+      initial={false}
       whileInView={reduceMotion ? undefined : "visible"}
       viewport={{ once: true, amount: 0.15 }}
       variants={sectionReveal}
@@ -202,7 +202,7 @@ export function TimelineSection() {
               key={showAll ? "all" : "featured"}
               className="timeline-grid"
               variants={staggerContainer}
-              initial={reduceMotion ? false : "hidden"}
+              initial={false}
               animate={reduceMotion ? undefined : "visible"}
               exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.16 } }}
             >

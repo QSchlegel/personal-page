@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Manrope, Sora } from "next/font/google";
 
 import { SiteShell } from "@/components/SiteShell";
 import { siteConfig } from "@/config/site";
@@ -10,6 +10,12 @@ const uiFont = Manrope({
   variable: "--font-ui",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+const displayFont = Sora({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -50,7 +56,7 @@ export default function RootLayout({
           data-website-id="a7b0e8f0-cf49-4cf7-a0e3-5b0b7137aa3b"
         />
       </head>
-      <body className={uiFont.variable}>
+      <body className={`${uiFont.variable} ${displayFont.variable}`}>
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

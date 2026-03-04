@@ -81,7 +81,7 @@ export function AdminInboxPanel({ showPageHeading = true }: { showPageHeading?: 
   return (
     <motion.section
       className="panel"
-      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      initial={false}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: easingStandard }}
     >
@@ -96,7 +96,7 @@ export function AdminInboxPanel({ showPageHeading = true }: { showPageHeading?: 
         {status ? (
           <motion.p
             className="status-error"
-            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+            initial={false}
             animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
           >
@@ -112,7 +112,7 @@ export function AdminInboxPanel({ showPageHeading = true }: { showPageHeading?: 
             <motion.article
               key={thread.id}
               className="admin-item"
-              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              initial={false}
               animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: index * 0.03 }}
             >

@@ -176,7 +176,7 @@ export function FloatingAuthChat() {
     <>
       <motion.div
         className="floating-chat-dock"
-        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        initial={false}
         animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         transition={{ duration: 0.34 }}
       >
@@ -196,7 +196,7 @@ export function FloatingAuthChat() {
           {status ? (
             <motion.p
               className="floating-chat-status"
-              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              initial={false}
               animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
             >
@@ -211,7 +211,7 @@ export function FloatingAuthChat() {
           <motion.div
             className="floating-chat-overlay"
             role="presentation"
-            initial={reduceMotion ? false : { opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={(event) => {
@@ -225,7 +225,7 @@ export function FloatingAuthChat() {
               role="dialog"
               aria-modal="true"
               aria-label="Authenticated chat"
-              initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.98 }}
+              initial={false}
               animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14, scale: 0.98 }}
               transition={{ duration: 0.25 }}

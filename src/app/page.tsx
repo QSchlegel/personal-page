@@ -16,7 +16,7 @@ export default function HomePage() {
     <div className="home-main">
       <motion.section
         className="panel hero"
-        initial={reduceMotion ? false : "hidden"}
+        initial={false}
         whileInView={reduceMotion ? undefined : "visible"}
         viewport={{ once: true, amount: 0.3 }}
         variants={sectionReveal}
@@ -30,7 +30,7 @@ export default function HomePage() {
             <motion.div
               className="hero-actions"
               variants={staggerContainer}
-              initial={reduceMotion ? false : "hidden"}
+              initial={false}
               whileInView={reduceMotion ? undefined : "visible"}
               viewport={{ once: true, amount: 0.45 }}
             >
@@ -49,7 +49,7 @@ export default function HomePage() {
             <motion.ul
               className="hero-highlights"
               variants={staggerContainer}
-              initial={reduceMotion ? false : "hidden"}
+              initial={false}
               whileInView={reduceMotion ? undefined : "visible"}
               viewport={{ once: true, amount: 0.35 }}
             >
@@ -63,7 +63,7 @@ export default function HomePage() {
 
           <motion.figure
             className="hero-photo-wrap"
-            initial={reduceMotion ? false : { opacity: 0, x: 20, scale: 0.96 }}
+            initial={false}
             whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, scale: 1 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.75 }}
@@ -83,7 +83,7 @@ export default function HomePage() {
       <motion.section
         id="about"
         className="panel about-panel"
-        initial={reduceMotion ? false : "hidden"}
+        initial={false}
         whileInView={reduceMotion ? undefined : "visible"}
         viewport={{ once: true, amount: 0.2 }}
         variants={sectionReveal}
@@ -96,7 +96,7 @@ export default function HomePage() {
         <motion.div
           className="about-grid"
           variants={staggerContainer}
-          initial={reduceMotion ? false : "hidden"}
+          initial={false}
           whileInView={reduceMotion ? undefined : "visible"}
           viewport={{ once: true, amount: 0.25 }}
         >
@@ -127,7 +127,7 @@ export default function HomePage() {
       <motion.section
         id="contact"
         className="panel"
-        initial={reduceMotion ? false : "hidden"}
+        initial={false}
         whileInView={reduceMotion ? undefined : "visible"}
         viewport={{ once: true, amount: 0.2 }}
         variants={sectionReveal}
@@ -140,7 +140,7 @@ export default function HomePage() {
         <motion.div
           className="contact-actions"
           variants={staggerContainer}
-          initial={reduceMotion ? false : "hidden"}
+          initial={false}
           whileInView={reduceMotion ? undefined : "visible"}
           viewport={{ once: true, amount: 0.35 }}
         >

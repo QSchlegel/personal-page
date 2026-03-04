@@ -1,5 +1,6 @@
 :root {
   --font-ui: "Manrope", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-display: "Sora", "Avenir Next", "Segoe UI", sans-serif;
 
   --bg-0: #0d131b;
   --bg-1: #121c28;
@@ -17,8 +18,8 @@
 
   --panel-border: rgba(178, 194, 209, 0.28);
   --panel-border-strong: rgba(185, 201, 217, 0.45);
-  --panel-bg: rgba(14, 21, 30, 0.4);
-  --panel-bg-strong: rgba(18, 26, 37, 0.58);
+  --panel-bg: rgba(14, 21, 30, 0.26);
+  --panel-bg-strong: rgba(18, 26, 37, 0.4);
   --shadow: 0 26px 58px rgba(0, 0, 0, 0.32);
 
   --radius-lg: 24px;
@@ -142,17 +143,136 @@ button:disabled {
 }
 
 .brand {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.55rem;
-  height: 2.55rem;
+  width: 3.35rem;
+  height: 3.35rem;
   border-radius: 999px;
   border: 1px solid rgba(188, 201, 215, 0.35);
-  background: rgba(240, 246, 255, 0.06);
-  letter-spacing: 0.06em;
-  font-size: 1rem;
+  background: radial-gradient(circle at 32% 24%, rgba(222, 232, 245, 0.24), rgba(206, 221, 238, 0.08) 58%, rgba(205, 221, 239, 0.02));
+  box-shadow: 0 10px 24px rgba(3, 6, 10, 0.3), inset 0 1px 0 rgba(241, 248, 255, 0.24);
+  isolation: isolate;
+}
+
+.brand::after {
+  content: "";
+  position: absolute;
+  inset: -0.2rem;
+  border-radius: inherit;
+  border: 1px solid rgba(199, 215, 231, 0.34);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: brand-halo 6s ease-in-out infinite;
+}
+
+.brand-logo {
+  width: 2.3rem;
+  height: 2.3rem;
+  display: block;
+  overflow: visible;
+}
+
+.qs-logo-orbit,
+.qs-logo-orbit-secondary {
+  fill: none;
+  transform-origin: 50% 50%;
+}
+
+.qs-logo-orbit {
+  stroke: rgba(201, 216, 232, 0.74);
+  stroke-width: 1.75;
+  stroke-dasharray: 10 7;
+  animation: qs-logo-orbit 12s linear infinite;
+}
+
+.qs-logo-orbit-secondary {
+  stroke: rgba(193, 209, 225, 0.42);
+  stroke-width: 1.25;
+  stroke-dasharray: 3 6;
+  animation: qs-logo-orbit-reverse 9s linear infinite;
+}
+
+.qs-logo-bg {
+  fill: rgba(202, 219, 236, 0.12);
+  stroke: rgba(203, 218, 233, 0.92);
+  stroke-width: 1.9;
+  transform-origin: 50% 50%;
+  animation: qs-logo-tile 4.2s cubic-bezier(0.37, 0, 0.26, 1) infinite;
+}
+
+.qs-logo-gloss {
+  fill: rgba(240, 248, 255, 0.2);
+  transform-origin: 50% 50%;
+  animation: qs-logo-gloss 4.2s cubic-bezier(0.37, 0, 0.26, 1) infinite;
+}
+
+.qs-logo-text {
+  fill: var(--ink-0);
+  font-family: var(--font-display);
   font-weight: 700;
+  letter-spacing: 0.012em;
+  transform-origin: 50% 50%;
+  animation: qs-logo-text 4.2s cubic-bezier(0.37, 0, 0.26, 1) infinite;
+}
+
+@keyframes brand-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes qs-logo-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes qs-logo-orbit-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes qs-logo-tile {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.03) translateY(-0.6px);
+  }
+}
+
+@keyframes qs-logo-gloss {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(-0.8px);
+  }
+}
+
+@keyframes qs-logo-text {
+  0%,
+  100% {
+    opacity: 0.88;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-0.6px);
+  }
 }
 
 .site-nav-links {
@@ -164,7 +284,9 @@ button:disabled {
 }
 
 .site-nav-links a {
+  font-family: var(--font-display);
   font-size: 0.86rem;
+  font-weight: 500;
   letter-spacing: 0.03em;
   color: var(--ink-1);
   border: 1px solid transparent;
@@ -178,6 +300,12 @@ button:disabled {
   color: var(--ink-0);
   border-color: rgba(181, 197, 213, 0.45);
   background: rgba(235, 243, 255, 0.09);
+}
+
+.site-nav-cta {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .site-main {
@@ -231,12 +359,13 @@ button:disabled {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 55%);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent 55%);
 }
 
 h1,
 h2,
 h3 {
+  font-family: var(--font-display);
   margin: 0;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -378,7 +507,7 @@ p {
 .about-card {
   border: 1px solid rgba(182, 196, 211, 0.28);
   border-radius: var(--radius-md);
-  background: rgba(220, 232, 245, 0.055);
+  background: rgba(220, 232, 245, 0.03);
   padding: 0.92rem;
   display: grid;
   gap: 0.35rem;
@@ -422,7 +551,7 @@ p {
 .timeline-card {
   border: 1px solid rgba(179, 195, 211, 0.24);
   border-radius: var(--radius-md);
-  background: rgba(214, 227, 240, 0.05);
+  background: rgba(214, 227, 240, 0.028);
   padding: 0.95rem;
   display: grid;
   gap: 0.72rem;
@@ -495,7 +624,7 @@ p {
   padding: 0.43rem 0.76rem;
   border: 1px solid rgba(183, 198, 213, 0.34);
   border-radius: var(--radius-sm);
-  background: rgba(220, 231, 244, 0.075);
+  background: rgba(220, 231, 244, 0.04);
   color: var(--ink-1);
   display: inline-flex;
   align-items: center;
@@ -617,7 +746,7 @@ p {
 .auth-panel {
   border: 1px solid rgba(183, 198, 213, 0.3);
   border-radius: var(--radius-md);
-  background: rgba(214, 227, 240, 0.06);
+  background: rgba(214, 227, 240, 0.035);
   padding: 0.92rem;
 }
 
@@ -664,7 +793,7 @@ p {
   border: 1px solid rgba(182, 197, 213, 0.26);
   border-radius: var(--radius-md);
   padding: 0.82rem;
-  background: rgba(212, 225, 238, 0.06);
+  background: rgba(212, 225, 238, 0.035);
 }
 
 .comms-sidebar {
@@ -749,7 +878,7 @@ p {
   width: 100%;
   border-radius: 11px;
   border: 1px solid rgba(182, 197, 213, 0.3);
-  background: rgba(244, 249, 255, 0.06);
+  background: rgba(244, 249, 255, 0.035);
   color: var(--ink-0);
   padding: 0.62rem;
 }
@@ -772,13 +901,13 @@ p {
 .message {
   border: 1px solid rgba(177, 192, 209, 0.24);
   border-radius: 12px;
-  background: rgba(214, 226, 238, 0.05);
+  background: rgba(214, 226, 238, 0.028);
   padding: 0.62rem;
 }
 
 .message.mine {
   border-color: rgba(214, 227, 239, 0.56);
-  background: rgba(229, 239, 248, 0.12);
+  background: rgba(229, 239, 248, 0.07);
 }
 
 .message span {
@@ -801,7 +930,7 @@ p {
 .admin-item {
   border: 1px solid rgba(182, 197, 213, 0.28);
   border-radius: var(--radius-md);
-  background: rgba(215, 228, 241, 0.06);
+  background: rgba(215, 228, 241, 0.035);
   padding: 0.88rem;
 }
 
@@ -834,7 +963,7 @@ p {
   margin-top: 0.82rem;
   border: 1px dashed rgba(194, 208, 223, 0.52);
   border-radius: 12px;
-  background: rgba(220, 233, 245, 0.08);
+  background: rgba(220, 233, 245, 0.045);
   padding: 0.72rem;
 }
 
@@ -947,9 +1076,9 @@ p {
   }
 
   :root {
-    --bg-0: #eef2f5;
-    --bg-1: #e2e8ee;
-    --bg-2: #d7dfe7;
+    --bg-0: #e5edf6;
+    --bg-1: #d7e2ee;
+    --bg-2: #c8d6e6;
 
     --ink-0: #162131;
     --ink-1: #37495c;
@@ -963,15 +1092,15 @@ p {
 
     --panel-border: rgba(90, 112, 132, 0.28);
     --panel-border-strong: rgba(92, 114, 135, 0.42);
-    --panel-bg: rgba(255, 255, 255, 0.45);
-    --panel-bg-strong: rgba(255, 255, 255, 0.72);
+    --panel-bg: rgba(255, 255, 255, 0.42);
+    --panel-bg-strong: rgba(255, 255, 255, 0.66);
     --shadow: 0 22px 42px rgba(80, 101, 123, 0.2);
   }
 
   body {
     background:
-      radial-gradient(circle at 16% 15%, rgba(134, 154, 174, 0.18), transparent 34%),
-      radial-gradient(circle at 88% 0%, rgba(156, 169, 183, 0.22), transparent 32%),
+      radial-gradient(circle at 16% 15%, rgba(106, 134, 162, 0.22), transparent 34%),
+      radial-gradient(circle at 88% 0%, rgba(136, 154, 176, 0.24), transparent 32%),
       linear-gradient(142deg, var(--bg-0) 0%, var(--bg-1) 54%, var(--bg-2) 100%);
   }
 
@@ -981,8 +1110,34 @@ p {
   }
 
   .brand {
-    background: rgba(255, 255, 255, 0.7);
+    background: radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.72) 56%, rgba(244, 249, 255, 0.68));
     border-color: rgba(99, 122, 142, 0.36);
+    box-shadow: 0 10px 22px rgba(98, 119, 141, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  }
+
+  .brand::after {
+    border-color: rgba(107, 131, 151, 0.34);
+  }
+
+  .qs-logo-bg {
+    fill: rgba(79, 109, 138, 0.09);
+    stroke: rgba(95, 118, 138, 0.8);
+  }
+
+  .qs-logo-orbit {
+    stroke: rgba(91, 115, 136, 0.62);
+  }
+
+  .qs-logo-orbit-secondary {
+    stroke: rgba(96, 120, 141, 0.34);
+  }
+
+  .qs-logo-gloss {
+    fill: rgba(255, 255, 255, 0.45);
+  }
+
+  .qs-logo-text {
+    fill: #1f2f42;
   }
 
   .site-nav-links a:hover,
@@ -1050,6 +1205,17 @@ p {
     background: rgba(255, 255, 255, 0.78);
     border-color: rgba(94, 116, 136, 0.28);
     color: var(--ink-0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand::after,
+  .qs-logo-orbit,
+  .qs-logo-orbit-secondary,
+  .qs-logo-bg,
+  .qs-logo-gloss,
+  .qs-logo-text {
+    animation: none;
   }
 }
 

@@ -265,6 +265,36 @@ function buildResponse(projects: TimelineProject[], source: TimelineResponse["so
   };
 }
 
+function buildSeedFallbackResponse(): TimelineResponse {
+  const seedOnlyProjects = curatedSeed
+    .filter((seed) => seed.featuredOrder <= 8)
+    .sort((a, b) => a.featuredOrder - b.featuredOrder)
+    .map((seed) => ({
+      repoName: seed.repoName,
+      fullName: `QSchlegel/${seed.repoName}`,
+      description: seed.summary,
+      language: null,
+      homepage: null,
+      htmlUrl: `https://github.com/QSchlegel/${seed.repoName}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      pushedAt: null,
+      stars: 0,
+      label: seed.label,
+      summary: seed.summary,
+      iframeUrl: seed.iframeUrl ?? null,
+      isFeatured: true,
+      featuredOrder: seed.featuredOrder,
+    } satisfies TimelineProject));
+
+  return {
+    curated: seedOnlyProjects,
+    all: seedOnlyProjects,
+    fetchedAt: new Date().toISOString(),
+    source: "seed-fallback",
+  };
+}
+
 function mergeLiveReposAsFallback(): Promise<TimelineResponse> {
   return fetchGitHubRepos(env.GITHUB_TIMELINE_USER).then((repos) => {
     const projects = repos
@@ -295,11 +325,25 @@ function mergeLiveReposAsFallback(): Promise<TimelineResponse> {
   });
 }
 
+async function getGithubOrSeedFallback(): Promise<TimelineResponse> {
+  try {
+    return await mergeLiveReposAsFallback();
+  } catch (fallbackError) {
+    console.error("Timeline fallback failed, using seed-only data", fallbackError);
+    return buildSeedFallbackResponse();
+  }
+}
+
 function isPrismaKnownError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError;
 }
 
 export async function getTimelineProjects(): Promise<TimelineResponse> {
+  if (!process.env.DATABASE_URL?.trim()) {
+    console.warn("DATABASE_URL missing, skipping Prisma timeline read and using live GitHub fallback.");
+    return getGithubOrSeedFallback();
+  }
+
   try {
     await seedProjectOverrides();
 
@@ -359,38 +403,6 @@ export async function getTimelineProjects(): Promise<TimelineResponse> {
       console.warn("Timeline read failed, falling back to live GitHub", error);
     }
 
-    try {
-      return await mergeLiveReposAsFallback();
-    } catch (fallbackError) {
-      console.error("Timeline fallback failed, using seed-only data", fallbackError);
-
-      const seedOnlyProjects = curatedSeed
-        .filter((seed) => seed.featuredOrder <= 8)
-        .sort((a, b) => a.featuredOrder - b.featuredOrder)
-        .map((seed) => ({
-          repoName: seed.repoName,
-          fullName: `QSchlegel/${seed.repoName}`,
-          description: seed.summary,
-          language: null,
-          homepage: null,
-          htmlUrl: `https://github.com/QSchlegel/${seed.repoName}`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          pushedAt: null,
-          stars: 0,
-          label: seed.label,
-          summary: seed.summary,
-          iframeUrl: seed.iframeUrl ?? null,
-          isFeatured: true,
-          featuredOrder: seed.featuredOrder,
-        } satisfies TimelineProject));
-
-      return {
-        curated: seedOnlyProjects,
-        all: seedOnlyProjects,
-        fetchedAt: new Date().toISOString(),
-        source: "seed-fallback",
-      };
-    }
+    return getGithubOrSeedFallback();
   }
 }
