@@ -152,6 +152,7 @@ Where `keyFingerprint = sha256(secret)` stored server-side.
 - Deploy using the included `Dockerfile` (configured in `railway.json`).
 - Use Railway PostgreSQL for `DATABASE_URL`.
 - The Docker build runs `npm ci --include=dev`, `npm run prisma:generate`, and `npm run build` from lockfile-defined dependencies.
+- No schema-changing Prisma command is run automatically during deploy; this is safe for shared databases.
 - Configure cron at `0 0 * * *` (UTC) to call:
   - `POST /api/internal/cron/timeline-sync`
   - Header: `x-cron-secret: $CRON_SECRET`
