@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { CommsWorkspace } from "@/components/CommsWorkspace";
 import { authClient } from "@/lib/auth-client";
-import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
+import { hasPasskeySupport } from "@/lib/passkey";
 
 const CHAT_AUTH_PARAM = "chatAuth";
 const CHAT_AUTH_INTENT = "passkey";
@@ -59,10 +59,10 @@ export function FloatingAuthChat() {
     setHasCallbackIntent(false);
   }, []);
 
-  const registerPasskey = useCallback(async (preferLocal: boolean) => {
+  const registerPasskey = useCallback(async () => {
     const result = await authClient.passkey.addPasskey({
       name: "Portfolio Passkey",
-      ...(preferLocal ? { authenticatorAttachment: "platform" as const } : {}),
+      authenticatorAttachment: "platform" as const,
     });
 
     if (!result.error) {
@@ -100,7 +100,7 @@ export function FloatingAuthChat() {
     setIsBusy(true);
 
     try {
-      // Always try passkey sign-in first (local-first approach)
+      // Step 1: Try login with local passkey
       const passkeySignIn = await authClient.signIn.passkey();
 
       if (!passkeySignIn.error) {
@@ -109,24 +109,23 @@ export function FloatingAuthChat() {
         return;
       }
 
-      const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
-
-      if (isSignedIn) {
-        const registration = await registerPasskey(hasLocalPasskeyAuthenticator);
-        if (registration.ok) {
-          setIsChatOpen(true);
-          setStatus("Passkey registered. Secure chat unlocked.");
-        } else {
-          setStatus(registration.message ?? "Passkey registration failed.");
-        }
+      // Step 2: Try register a local passkey
+      if (!isSignedIn) {
+        setStatus("Signing in via GitHub to set up your passkey...");
+        await authClient.signIn.social({
+          provider: "github",
+          callbackURL: "/?chatAuth=passkey",
+        });
         return;
       }
 
-      setStatus("Redirecting to GitHub to register your passkey...");
-      await authClient.signIn.social({
-        provider: "github",
-        callbackURL: "/?chatAuth=passkey",
-      });
+      const registration = await registerPasskey();
+      if (registration.ok) {
+        setIsChatOpen(true);
+        setStatus("Passkey registered. Secure chat unlocked.");
+      } else {
+        setStatus(registration.message ?? "Passkey registration failed.");
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Secure access failed.");
     } finally {
@@ -156,8 +155,7 @@ export function FloatingAuthChat() {
         return;
       }
 
-      const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
-      const registration = await registerPasskey(hasLocalPasskeyAuthenticator);
+      const registration = await registerPasskey();
 
       if (registration.ok) {
         setIsChatOpen(true);
