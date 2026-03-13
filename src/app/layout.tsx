@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Sora } from "next/font/google";
+import { JetBrains_Mono, Manrope, Sora } from "next/font/google";
 
 import { SiteShell } from "@/components/SiteShell";
 import { siteConfig } from "@/config/site";
@@ -16,6 +16,12 @@ const displayFont = Sora({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
+});
+
+const monoFont = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -62,7 +68,7 @@ export default function RootLayout({
           data-website-id="a7b0e8f0-cf49-4cf7-a0e3-5b0b7137aa3b"
         />
       </head>
-      <body className={`${uiFont.variable} ${displayFont.variable}`}>
+      <body className={`${uiFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
         <SiteShell>{children}</SiteShell>
       </body>
     </html>
