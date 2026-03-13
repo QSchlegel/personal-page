@@ -187,25 +187,12 @@ button:disabled {
   animation: qs-logo-orbit 12s linear infinite;
 }
 
-.qs-logo-orbit-secondary {
-  stroke: rgba(193, 209, 225, 0.42);
-  stroke-width: 1.25;
-  stroke-dasharray: 3 6;
-  animation: qs-logo-orbit-reverse 9s linear infinite;
-}
-
 .qs-logo-bg {
   fill: rgba(202, 219, 236, 0.12);
   stroke: rgba(203, 218, 233, 0.92);
   stroke-width: 1.9;
   transform-origin: 50% 50%;
   animation: qs-logo-tile 4.2s cubic-bezier(0.37, 0, 0.26, 1) infinite;
-}
-
-.qs-logo-gloss {
-  fill: rgba(240, 248, 255, 0.2);
-  transform-origin: 50% 50%;
-  animation: qs-logo-gloss 4.2s cubic-bezier(0.37, 0, 0.26, 1) infinite;
 }
 
 .qs-logo-text {
@@ -235,12 +222,6 @@ button:disabled {
   }
 }
 
-@keyframes qs-logo-orbit-reverse {
-  to {
-    transform: rotate(-360deg);
-  }
-}
-
 @keyframes qs-logo-tile {
   0%,
   100% {
@@ -248,18 +229,6 @@ button:disabled {
   }
   50% {
     transform: scale(1.03) translateY(-0.6px);
-  }
-}
-
-@keyframes qs-logo-gloss {
-  0%,
-  100% {
-    opacity: 0.5;
-    transform: translateY(0);
-  }
-  50% {
-    opacity: 0.9;
-    transform: translateY(-0.8px);
   }
 }
 
@@ -1368,6 +1337,7 @@ p {
   .site-main {
     width: min(var(--content-max), 100% - 1.8rem);
     margin-top: 1.4rem;
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .panel {
@@ -1387,6 +1357,16 @@ p {
   .site-nav-links {
     width: 100%;
     order: 3;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .site-nav-links::-webkit-scrollbar {
+    display: none;
   }
 
   .site-nav-cta {
@@ -1402,12 +1382,27 @@ p {
   }
 
   .floating-chat-dock {
-    width: min(96vw, 520px);
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    width: 100%;
+    transform: none;
+    bottom: 0;
+    border-radius: 0;
+    border-top: 1px solid rgba(186, 200, 214, 0.18);
+    background: rgba(8, 12, 18, 0.92);
+    backdrop-filter: blur(20px) saturate(118%);
+    padding: 0.6rem 1.2rem max(0.6rem, env(safe-area-inset-bottom));
+    gap: 0.3rem;
   }
 
   .floating-chat-trigger {
     width: 100%;
+    border-radius: 14px;
+  }
+
+  .floating-chat-status {
+    order: -1;
+    text-align: center;
   }
 
   .floating-chat-overlay {
@@ -1452,6 +1447,10 @@ p {
   }
 
   .hero-actions {
+    width: 100%;
+  }
+
+  .hero-actions > div {
     width: 100%;
   }
 
