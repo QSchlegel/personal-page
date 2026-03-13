@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, ChevronDown, ChevronUp, ExternalLink, Globe, Github, Star } from "lucide-react";
+import { Calendar, ChevronDown, ChevronUp, Clock, ExternalLink, Globe, Github, Star } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { IframeEmbed } from "@/components/IframeEmbed";
@@ -66,7 +66,7 @@ function ProjectCard({ project, index }: { project: TimelineProject; index: numb
           Started {formatProjectDate(project.createdAt)}
         </li>
         <li>
-          <Calendar className="icon-sm" />
+          <Clock className="icon-sm" />
           Updated {formatProjectDate(pushed)}
         </li>
         <li>
@@ -174,7 +174,28 @@ export function TimelineSection() {
       </div>
 
       {error ? <p className="status-error">{error}</p> : null}
-      {!timeline && !error ? <p className="status-muted">Loading timeline...</p> : null}
+      {!timeline && !error ? (
+        <div className="timeline-grid" aria-busy="true" aria-label="Loading projects">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="skeleton-card" aria-hidden="true">
+              <div className="timeline-title-row">
+                <div className="skeleton skeleton-title" />
+                <div className="skeleton-badge-row">
+                  <div className="skeleton skeleton-badge" />
+                  <div className="skeleton skeleton-badge" />
+                </div>
+              </div>
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line-short" />
+              <div className="skeleton-facts">
+                <div className="skeleton skeleton-fact" />
+                <div className="skeleton skeleton-fact" />
+                <div className="skeleton skeleton-fact" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {timeline ? (
         <>
