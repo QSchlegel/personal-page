@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ArrowRight, Github, Mail, MessageSquare } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
+import { CardParticles } from "@/components/CardParticles";
 import { TimelineSection } from "@/components/TimelineSection";
 import { siteConfig } from "@/config/site";
 import { cardReveal, fadeInScale, sectionReveal, springSoft, springSnappy, staggerContainer } from "@/lib/motion";
@@ -21,6 +22,7 @@ export default function HomePage() {
         viewport={{ once: true, amount: 0.3 }}
         variants={sectionReveal}
       >
+        <CardParticles count={100} speed={0.6} seed={100} />
         <div className="hero-grid">
           <div className="hero-copy">
             <p className="eyebrow">{siteConfig.heroEyebrow}</p>
@@ -110,6 +112,7 @@ export default function HomePage() {
               whileHover={reduceMotion ? undefined : { y: -4 }}
               transition={springSoft}
             >
+              <CardParticles count={40} speed={0.8 + index * 0.3} seed={index * 500} />
               <h3>{item.title}</h3>
               <p>{item.description}</p>
             </motion.article>
@@ -148,6 +151,7 @@ export default function HomePage() {
         viewport={{ once: true, amount: 0.2 }}
         variants={sectionReveal}
       >
+        <CardParticles count={80} speed={0.5} seed={3000} />
         <div className="section-heading">
           <h2>Let&apos;s Build</h2>
           <p>Open a secure thread or reach out directly to collaborate on product and platform work.</p>

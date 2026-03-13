@@ -378,6 +378,8 @@ p {
 }
 
 .section-heading {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 0.42rem;
   margin-bottom: 1rem;
@@ -412,9 +414,16 @@ p {
 .hero {
   overflow: hidden;
   padding: 1.8rem;
+  position: relative;
+}
+
+.hero > .card-particles {
+  opacity: 0.35;
 }
 
 .hero-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 390px);
   align-items: center;
@@ -534,7 +543,25 @@ p {
   gap: 0.8rem;
 }
 
+.card-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.card-particles canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .about-card {
+  position: relative;
   border: 1px solid rgba(110, 200, 255, 0.12);
   border-radius: var(--radius-md);
   background: rgba(110, 200, 255, 0.02);
@@ -542,12 +569,23 @@ p {
   display: grid;
   gap: 0.35rem;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  overflow: hidden;
 }
 
 .about-card:hover {
   border-color: rgba(110, 200, 255, 0.35);
   background: rgba(110, 200, 255, 0.04);
   box-shadow: 0 0 24px rgba(110, 200, 255, 0.06), inset 0 1px 0 rgba(110, 200, 255, 0.08);
+}
+
+.about-card:hover .card-particles {
+  opacity: 1;
+}
+
+.about-card > h3,
+.about-card > p {
+  position: relative;
+  z-index: 1;
 }
 
 .about-card p {
@@ -876,6 +914,8 @@ p {
 }
 
 .contact-actions {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
