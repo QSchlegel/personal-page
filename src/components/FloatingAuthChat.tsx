@@ -100,17 +100,16 @@ export function FloatingAuthChat() {
     setIsBusy(true);
 
     try {
-      const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
+      // Always try passkey sign-in first (local-first approach)
+      const passkeySignIn = await authClient.signIn.passkey();
 
-      if (hasLocalPasskeyAuthenticator) {
-        const passkeySignIn = await authClient.signIn.passkey();
-
-        if (!passkeySignIn.error) {
-          setIsChatOpen(true);
-          setStatus("Secure chat unlocked.");
-          return;
-        }
+      if (!passkeySignIn.error) {
+        setIsChatOpen(true);
+        setStatus("Secure chat unlocked.");
+        return;
       }
+
+      const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
 
       if (isSignedIn) {
         const registration = await registerPasskey(hasLocalPasskeyAuthenticator);
