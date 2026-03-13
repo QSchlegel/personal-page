@@ -1227,8 +1227,8 @@ p {
   display: grid;
   place-items: center;
   padding: 1.2rem;
-  backdrop-filter: blur(8px);
-  background: rgba(8, 12, 17, 0.46);
+  backdrop-filter: none;
+  background: transparent;
 }
 
 .floating-chat-modal {
@@ -1395,7 +1395,7 @@ p {
   }
 
   .floating-chat-overlay {
-    background: rgba(147, 163, 181, 0.42);
+    background: transparent;
   }
 
   .floating-chat-modal {
