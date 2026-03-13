@@ -9,6 +9,13 @@ export const springSoft = {
   mass: 0.7,
 } as const;
 
+export const springSnappy = {
+  type: "spring",
+  stiffness: 300,
+  damping: 20,
+  mass: 0.5,
+} as const;
+
 export const sectionReveal: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: {
@@ -41,6 +48,42 @@ export const staggerContainer: Variants = {
     transition: {
       staggerChildren: 0.08,
       delayChildren: 0.08,
+    },
+  },
+};
+
+export const glowPulse: Variants = {
+  hidden: { opacity: 0, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.5,
+      ease: easingStandard,
+    },
+  },
+};
+
+export const slideInLeft: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.5,
+      ease: easingStandard,
+    },
+  },
+};
+
+export const fadeInScale: Variants = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.6,
+      ease: easingStandard,
     },
   },
 };

@@ -10,7 +10,7 @@ import { QSLogo } from "@/components/QSLogo";
 import { ThreeBackground } from "@/components/ThreeBackground";
 import { getRouteMeta, navItems } from "@/config/routes";
 import { siteConfig } from "@/config/site";
-import { easingStandard } from "@/lib/motion";
+import { easingStandard, springSoft } from "@/lib/motion";
 
 function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") {
@@ -47,10 +47,12 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          <Link href="/comms" className="site-nav-cta">
-            <MessageSquare className="icon-sm" />
-            Secure Chat
-          </Link>
+          <motion.div whileHover={reduceMotion ? undefined : { y: -2, scale: 1.04 }} transition={springSoft}>
+            <Link href="/comms" className="site-nav-cta">
+              <MessageSquare className="icon-sm" />
+              Secure Chat
+            </Link>
+          </motion.div>
         </div>
       </header>
 

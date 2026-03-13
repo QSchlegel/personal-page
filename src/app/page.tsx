@@ -7,7 +7,7 @@ import { motion, useReducedMotion } from "framer-motion";
 
 import { TimelineSection } from "@/components/TimelineSection";
 import { siteConfig } from "@/config/site";
-import { cardReveal, sectionReveal, springSoft, staggerContainer } from "@/lib/motion";
+import { cardReveal, fadeInScale, sectionReveal, springSoft, springSnappy, staggerContainer } from "@/lib/motion";
 
 export default function HomePage() {
   const reduceMotion = useReducedMotion();
@@ -38,7 +38,7 @@ export default function HomePage() {
                 <ArrowRight className="icon-sm" />
                 Explore Projects
               </motion.a>
-              <motion.div variants={cardReveal} custom={1}>
+              <motion.div variants={cardReveal} custom={1} whileHover={reduceMotion ? undefined : { y: -2 }} transition={springSoft}>
                 <Link href="/comms">
                   <MessageSquare className="icon-sm" />
                   Start Secure Chat
@@ -65,6 +65,7 @@ export default function HomePage() {
             className="hero-photo-wrap"
             initial={false}
             whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, scale: 1 }}
+            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.75 }}
           >
@@ -115,11 +116,26 @@ export default function HomePage() {
           ))}
         </motion.div>
 
-        <div className="skills-cloud" aria-label="Core skills">
-          {siteConfig.skills.map((skill) => (
-            <span key={skill}>{skill}</span>
+        <motion.div
+          className="skills-cloud"
+          aria-label="Core skills"
+          variants={staggerContainer}
+          initial={false}
+          whileInView={reduceMotion ? undefined : "visible"}
+          viewport={{ once: true, amount: 0.3 }}
+        >
+          {siteConfig.skills.map((skill, index) => (
+            <motion.span
+              key={skill}
+              variants={cardReveal}
+              custom={index}
+              whileHover={reduceMotion ? undefined : { y: -2, scale: 1.05 }}
+              transition={springSnappy}
+            >
+              {skill}
+            </motion.span>
           ))}
-        </div>
+        </motion.div>
       </motion.section>
 
       <TimelineSection />
@@ -144,25 +160,25 @@ export default function HomePage() {
           whileInView={reduceMotion ? undefined : "visible"}
           viewport={{ once: true, amount: 0.35 }}
         >
-          <motion.div variants={cardReveal} custom={0}>
+          <motion.div variants={cardReveal} custom={0} whileHover={reduceMotion ? undefined : { y: -3, scale: 1.02 }} transition={springSoft}>
             <Link href="/comms">
               <MessageSquare className="icon-sm" />
               Open Secure Chat
             </Link>
           </motion.div>
-          <motion.div variants={cardReveal} custom={1}>
+          <motion.div variants={cardReveal} custom={1} whileHover={reduceMotion ? undefined : { y: -3, scale: 1.02 }} transition={springSoft}>
             <a href={siteConfig.contact.twitter} target="_blank" rel="noreferrer">
               <span className="icon-x">X</span>
               X / Updates
             </a>
           </motion.div>
-          <motion.div variants={cardReveal} custom={2}>
+          <motion.div variants={cardReveal} custom={2} whileHover={reduceMotion ? undefined : { y: -3, scale: 1.02 }} transition={springSoft}>
             <a href={siteConfig.contact.github} target="_blank" rel="noreferrer">
               <Github className="icon-sm" />
               GitHub Repos
             </a>
           </motion.div>
-          <motion.div variants={cardReveal} custom={3}>
+          <motion.div variants={cardReveal} custom={3} whileHover={reduceMotion ? undefined : { y: -3, scale: 1.02 }} transition={springSoft}>
             <a href={`mailto:${siteConfig.contact.email}`}>
               <Mail className="icon-sm" />
               Email Direct
