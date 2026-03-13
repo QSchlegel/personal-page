@@ -1467,6 +1467,58 @@ p {
     width: 100%;
     justify-content: center;
   }
+
+  /* Touch target minimums (iOS HIG / WCAG 2.5.5 — 44px) */
+  .hero-actions a,
+  .top-nav-cta,
+  .timeline-actions button,
+  .timeline-switcher button,
+  .auth-actions button,
+  .inline-form button,
+  .message-form button,
+  .admin-actions button,
+  .contact-actions a,
+  .comms-sidebar button,
+  .timeline-meta-row button,
+  .timeline-meta-row a,
+  .floating-chat-trigger {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .top-nav-links a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Minimum readable text sizes */
+  .timeline-chip {
+    font-size: 0.82rem;
+  }
+
+  .message span {
+    font-size: 0.82rem;
+  }
+
+  .message time {
+    font-size: 0.8rem;
+  }
+
+  .icon-x {
+    font-size: 0.75rem;
+  }
+
+  /* Contact CTAs: full-width stack on mobile */
+  .contact-actions {
+    flex-direction: column;
+  }
+
+  .contact-actions a {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

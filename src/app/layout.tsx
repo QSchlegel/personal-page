@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope, Sora } from "next/font/google";
 
 import { SiteShell } from "@/components/SiteShell";
@@ -40,6 +40,12 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/apple-icon",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
