@@ -690,6 +690,133 @@ p {
   color: var(--accent-3);
 }
 
+/* ── Skeleton loader ─────────────────────────────────────── */
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -600px 0;
+  }
+  100% {
+    background-position: 600px 0;
+  }
+}
+
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 1200px 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.skeleton-card {
+  border: 1px solid rgba(126, 181, 224, 0.2);
+  border-radius: 16px;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.skeleton-title {
+  height: 1.4rem;
+  width: 55%;
+}
+
+.skeleton-badge-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.skeleton-badge {
+  height: 1.2rem;
+  width: 4.5rem;
+  border-radius: 999px;
+}
+
+.skeleton-line {
+  height: 0.9rem;
+}
+
+.skeleton-line-short {
+  height: 0.9rem;
+  width: 65%;
+}
+
+.skeleton-facts {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.skeleton-fact {
+  height: 0.85rem;
+  width: 5.5rem;
+  border-radius: 4px;
+}
+
+/* ── Focus-visible rings ─────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--accent-1);
+  outline-offset: 3px;
+}
+
+.top-nav-links a:focus-visible {
+  outline-offset: 1px;
+  border-radius: 999px;
+}
+
+.hero-actions a:focus-visible,
+.top-nav-cta:focus-visible,
+.timeline-actions button:focus-visible,
+.timeline-switcher button:focus-visible,
+.auth-actions button:focus-visible,
+.inline-form button:focus-visible,
+.message-form button:focus-visible,
+.admin-actions button:focus-visible,
+.contact-actions a:focus-visible,
+.comms-sidebar button:focus-visible,
+.timeline-meta-row button:focus-visible,
+.floating-chat-trigger:focus-visible,
+.floating-chat-collapse:focus-visible {
+  outline-offset: 2px;
+}
+
+.inline-form input:focus-visible,
+.inline-form textarea:focus-visible,
+.message-form textarea:focus-visible {
+  outline: 2px solid var(--accent-1);
+  outline-offset: 0;
+}
+
+/* ── Site footer ─────────────────────────────────────────── */
+
+.site-footer {
+  width: min(1100px, 100% - 2rem);
+  margin: 0 auto 2rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid rgba(126, 183, 222, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+  color: var(--ink-2);
+}
+
+.site-footer a {
+  color: var(--ink-1);
+  transition: color 0.15s ease;
+}
+
+.site-footer a:hover {
+  color: var(--ink-0);
+}
+
 .contact-actions {
   display: flex;
   align-items: center;
@@ -1160,6 +1287,9 @@ p {
   .timeline-meta-row button {
     border-color: rgba(93, 116, 137, 0.34);
     background: rgba(255, 255, 255, 0.74);
+  }
+
+  .auth-header strong {
     color: var(--ink-0);
   }
 
@@ -1336,5 +1466,15 @@ p {
   .admin-actions button {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .skeleton {
+    animation: none;
   }
 }
