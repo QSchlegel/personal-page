@@ -23,7 +23,7 @@ export function AuthPanel({ className = "" }: { className?: string }) {
     const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
 
     if (!hasLocalPasskeyAuthenticator) {
-      setMessage("No local passkey authenticator is available. Sign in with GitHub, then register a passkey.");
+      setMessage("No local passkey authenticator is available on this device.");
       return;
     }
 
@@ -42,7 +42,7 @@ export function AuthPanel({ className = "" }: { className?: string }) {
     <div className={`auth-panel ${className}`}>
       <div className="auth-header">
         <strong>{isSignedIn ? "Signed in" : "Secure Access"}</strong>
-        <span>{isSignedIn ? session?.user.email : "GitHub + Passkey"}</span>
+        <span>{isSignedIn ? session?.user.email : "Passkey"}</span>
       </div>
 
       <div className="auth-actions">
