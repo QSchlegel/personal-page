@@ -8,20 +8,20 @@ import * as THREE from "three";
 /*  Layout constants                                                   */
 /* ------------------------------------------------------------------ */
 
-const LB_X = 0;
-const LB_Y = 1.6;
+/* Depth layout: users far back (neg-Z), DBs up front (pos-Z) */
+const LB_POS: [number, number, number] = [0, 0, -1.8];
 
 const SERVER_POSITIONS: [number, number, number][] = [
-  [-1.8, 0, 0],
-  [0, 0, 0],
-  [1.8, 0, 0],
+  [-2.0, 0, 0.4],
+  [0, 0, 0.4],
+  [2.0, 0, 0.4],
 ];
 
-const DB_PRIMARY: [number, number, number] = [-0.9, -1.6, 0];
-const DB_REPLICA: [number, number, number] = [0.9, -1.6, 0];
+const DB_PRIMARY: [number, number, number] = [-1.0, 0, 2.2];
+const DB_REPLICA: [number, number, number] = [1.0, 0, 2.2];
 
-const USER_Y = 3.2;
-const USER_SPREAD = 2.4;
+const USER_Z = -4.2;
+const USER_SPREAD = 3.2;
 const USER_COUNT = 5;
 
 /* ------------------------------------------------------------------ */
@@ -66,7 +66,7 @@ function GlowRing({ color, paused }: { color: string; paused: boolean }) {
   });
 
   return (
-    <mesh ref={ref} position={[LB_X, LB_Y, -0.05]}>
+    <mesh ref={ref} position={[LB_POS[0], 0.01, LB_POS[2]]} rotation={[-Math.PI / 2, 0, 0]}>
       <ringGeometry args={[0.38, 0.44, 32]} />
       <meshBasicMaterial color={color} transparent opacity={0.18} side={THREE.DoubleSide} />
     </mesh>
@@ -113,17 +113,17 @@ function Node({ position, width, height, label, color, accentColor, fontSize = 0
 
   return (
     <group position={position}>
-      {/* outline */}
-      <mesh>
+      {/* outline – flat on ground (XZ plane) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <shapeGeometry args={[shape]} />
         <meshBasicMaterial color={color} transparent opacity={0.12} />
       </mesh>
-      <lineSegments>
+      <lineSegments rotation={[-Math.PI / 2, 0, 0]}>
         <edgesGeometry args={[new THREE.ShapeGeometry(shape)]} />
         <lineBasicMaterial color={color} transparent opacity={0.55} />
       </lineSegments>
-      {/* label */}
-      <sprite scale={[fontSize * 5, fontSize * 5, 1]} position={[0, 0, 0.01]}>
+      {/* label – billboard sprite stays readable */}
+      <sprite scale={[fontSize * 5, fontSize * 5, 1]} position={[0, 0.35, 0]}>
         <spriteMaterial map={texture} transparent />
       </sprite>
     </group>
@@ -237,7 +237,7 @@ function HealthPulse({
   });
 
   return (
-    <mesh ref={ref} position={[position[0] + 0.32, position[1] + 0.16, 0.05]}>
+    <mesh ref={ref} position={[position[0] + 0.32, 0.02, position[2] - 0.16]} rotation={[-Math.PI / 2, 0, 0]}>
       <circleGeometry args={[0.04, 12]} />
       <meshBasicMaterial color={color} transparent opacity={0.5} />
     </mesh>
@@ -261,8 +261,8 @@ function ReplicationArrow({ color, paused }: { color: string; paused: boolean })
     for (let i = 0; i < count; i++) {
       const progress = ((t * 0.4 + i * 0.25) % 1 + 1) % 1;
       pos[i * 3] = DB_PRIMARY[0] + (DB_REPLICA[0] - DB_PRIMARY[0]) * progress;
-      pos[i * 3 + 1] = DB_PRIMARY[1];
-      pos[i * 3 + 2] = 0;
+      pos[i * 3 + 1] = 0;
+      pos[i * 3 + 2] = DB_PRIMARY[2];
     }
     attr.needsUpdate = true;
   });
@@ -289,16 +289,16 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
   const dbColor = isLightMode ? "#8a6c2a" : "#f5c45a";
   const replicaLine = isLightMode ? "#7a6832" : "#c8a844";
 
-  /* Build traffic routes */
+  /* Build traffic routes (depth: neg-Z = far, pos-Z = near) */
   const routes = useMemo<TrafficRoute[]>(() => {
     const result: TrafficRoute[] = [];
 
-    /* Users → LB */
+    /* Users → LB (from far back toward LB) */
     for (let i = 0; i < USER_COUNT; i++) {
       const ux = (i / (USER_COUNT - 1) - 0.5) * USER_SPREAD;
       result.push({
-        from: [ux, USER_Y, 0],
-        to: [LB_X, LB_Y + 0.25, 0],
+        from: [ux, 0, USER_Z],
+        to: [LB_POS[0], 0, LB_POS[2] + 0.25],
         delay: seededRandom(i * 7 + 1),
         speed: 0.35 + seededRandom(i * 3 + 2) * 0.25,
       });
@@ -309,8 +309,8 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
       const sp = SERVER_POSITIONS[s];
       for (let p = 0; p < 3; p++) {
         result.push({
-          from: [LB_X, LB_Y - 0.25, 0],
-          to: [sp[0], sp[1] + 0.22, 0],
+          from: [LB_POS[0], 0, LB_POS[2] + 0.25],
+          to: [sp[0], 0, sp[2] - 0.22],
           delay: seededRandom(s * 11 + p * 3 + 10),
           speed: 0.5 + seededRandom(s * 5 + p + 20) * 0.3,
         });
@@ -322,8 +322,8 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
       const sp = SERVER_POSITIONS[s];
       for (let p = 0; p < 2; p++) {
         result.push({
-          from: [sp[0], sp[1] - 0.22, 0],
-          to: [DB_PRIMARY[0], DB_PRIMARY[1] + 0.2, 0],
+          from: [sp[0], 0, sp[2] + 0.22],
+          to: [DB_PRIMARY[0], 0, DB_PRIMARY[2] - 0.2],
           delay: seededRandom(s * 13 + p + 40),
           speed: 0.4 + seededRandom(s * 7 + p + 50) * 0.2,
         });
@@ -333,20 +333,20 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
     return result;
   }, []);
 
-  /* User dots */
+  /* User dots (far back in Z) */
   const userPositions = useMemo(() => {
     const arr: [number, number, number][] = [];
     for (let i = 0; i < USER_COUNT; i++) {
-      arr.push([(i / (USER_COUNT - 1) - 0.5) * USER_SPREAD, USER_Y, 0]);
+      arr.push([(i / (USER_COUNT - 1) - 0.5) * USER_SPREAD, 0, USER_Z]);
     }
     return arr;
   }, []);
 
   return (
     <>
-      {/* Users */}
+      {/* Users (far back) */}
       {userPositions.map((pos, i) => (
-        <mesh key={`user-${i}`} position={pos}>
+        <mesh key={`user-${i}`} position={pos} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[0.08, 16]} />
           <meshBasicMaterial color={accent} transparent opacity={0.5} />
         </mesh>
@@ -354,16 +354,16 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
 
       {/* Connection lines: users → LB */}
       {userPositions.map((pos, i) => (
-        <ConnectionLine key={`ul-${i}`} from={pos} to={[LB_X, LB_Y + 0.25, 0]} color={lineColor} />
+        <ConnectionLine key={`ul-${i}`} from={pos} to={[LB_POS[0], 0, LB_POS[2] + 0.25]} color={lineColor} />
       ))}
 
       {/* Load Balancer */}
-      <Node position={[LB_X, LB_Y, 0]} width={0.9} height={0.45} label="LB" color={accent} accentColor={accent} />
+      <Node position={LB_POS} width={0.9} height={0.45} label="LB" color={accent} accentColor={accent} />
       <GlowRing color={accent} paused={paused} />
 
       {/* Connection lines: LB → Servers */}
       {SERVER_POSITIONS.map((sp, i) => (
-        <ConnectionLine key={`ls-${i}`} from={[LB_X, LB_Y - 0.25, 0]} to={[sp[0], sp[1] + 0.22, 0]} color={lineColor} />
+        <ConnectionLine key={`ls-${i}`} from={[LB_POS[0], 0, LB_POS[2] + 0.25]} to={[sp[0], 0, sp[2] - 0.22]} color={lineColor} />
       ))}
 
       {/* Servers */}
@@ -376,7 +376,7 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
 
       {/* Connection lines: Servers → DB primary */}
       {SERVER_POSITIONS.map((sp, i) => (
-        <ConnectionLine key={`sd-${i}`} from={[sp[0], sp[1] - 0.22, 0]} to={[DB_PRIMARY[0], DB_PRIMARY[1] + 0.2, 0]} color={lineColor} />
+        <ConnectionLine key={`sd-${i}`} from={[sp[0], 0, sp[2] + 0.22]} to={[DB_PRIMARY[0], 0, DB_PRIMARY[2] - 0.2]} color={lineColor} />
       ))}
 
       {/* DB Primary */}
@@ -440,9 +440,10 @@ export function DeploymentScene({ className }: { className?: string }) {
   return (
     <div aria-hidden className={className ? `deployment-scene ${className}` : "deployment-scene"}>
       <Canvas
-        camera={{ position: [0, 0.8, 6], fov: 45 }}
+        camera={{ position: [0, 5.5, 4.5], fov: 45 }}
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true }}
+        onCreated={({ camera }) => camera.lookAt(0, 0, -0.8)}
       >
         <Scene paused={isPaused} isLightMode={isLightMode} />
       </Canvas>
