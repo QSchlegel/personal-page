@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Github, KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { KeyRound, LogOut, ShieldCheck } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
@@ -11,14 +11,6 @@ export function AuthPanel({ className = "" }: { className?: string }) {
   const [message, setMessage] = useState<string | null>(null);
 
   const isSignedIn = Boolean(session?.user?.id);
-
-  async function signInGithub() {
-    setMessage(null);
-    await authClient.signIn.social({
-      provider: "github",
-      callbackURL: "/comms",
-    });
-  }
 
   async function signInPasskey() {
     setMessage(null);
@@ -71,16 +63,10 @@ export function AuthPanel({ className = "" }: { className?: string }) {
 
       <div className="auth-actions">
         {!isSignedIn ? (
-          <>
-            <button type="button" onClick={signInGithub} disabled={isPending}>
-              <Github className="icon-sm" />
-              Continue with GitHub
-            </button>
-            <button type="button" onClick={signInPasskey} disabled={isPending}>
-              <KeyRound className="icon-sm" />
-              Sign in with Passkey
-            </button>
-          </>
+          <button type="button" onClick={signInPasskey} disabled={isPending}>
+            <KeyRound className="icon-sm" />
+            Sign in with Passkey
+          </button>
         ) : (
           <>
             <button type="button" onClick={addPasskey}>
