@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { KeyRound, LogOut } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
@@ -33,22 +33,6 @@ export function AuthPanel({ className = "" }: { className?: string }) {
     }
   }
 
-  async function addPasskey() {
-    setMessage(null);
-    const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
-    const result = await authClient.passkey.addPasskey({
-      name: "Portfolio Passkey",
-      ...(hasLocalPasskeyAuthenticator ? { authenticatorAttachment: "platform" as const } : {}),
-    });
-
-    if (result.error) {
-      setMessage(result.error.message ?? "Passkey registration failed.");
-      return;
-    }
-
-    setMessage("Passkey registered.");
-  }
-
   async function signOut() {
     setMessage(null);
     await authClient.signOut();
@@ -68,16 +52,10 @@ export function AuthPanel({ className = "" }: { className?: string }) {
             Sign in with Passkey
           </button>
         ) : (
-          <>
-            <button type="button" onClick={addPasskey}>
-              <ShieldCheck className="icon-sm" />
-              Register Passkey
-            </button>
-            <button type="button" onClick={signOut}>
-              <LogOut className="icon-sm" />
-              Sign out
-            </button>
-          </>
+          <button type="button" onClick={signOut}>
+            <LogOut className="icon-sm" />
+            Sign out
+          </button>
         )}
       </div>
 
