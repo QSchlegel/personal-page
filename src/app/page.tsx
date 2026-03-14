@@ -6,6 +6,7 @@ import { ArrowRight, Github, Mail, MessageSquare } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { CardCanvas } from "@/components/CardCanvas";
+import { DeploymentScene } from "@/components/DeploymentScene";
 import { TimelineSection } from "@/components/TimelineSection";
 import { siteConfig } from "@/config/site";
 import { cardReveal, fadeInScale, sectionReveal, springSoft, springSnappy, staggerContainer } from "@/lib/motion";
@@ -96,6 +97,8 @@ export default function HomePage() {
           <h2>How I Work</h2>
           <p>{siteConfig.about}</p>
         </div>
+
+        <DeploymentScene />
 
         <motion.div
           className="about-grid"
