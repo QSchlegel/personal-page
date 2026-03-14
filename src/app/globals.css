@@ -294,18 +294,6 @@ button:disabled {
   text-shadow: 0 0 12px rgba(110, 200, 255, 0.3);
 }
 
-.site-nav-cta {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  border-color: rgba(110, 200, 255, 0.3) !important;
-  color: var(--accent-1) !important;
-}
-
-.site-nav-cta:hover {
-  text-shadow: 0 0 14px rgba(110, 200, 255, 0.4);
-}
-
 .site-main {
   width: min(var(--content-max), 100% - 3.2rem);
   margin: 2rem auto 5.5rem;
@@ -882,7 +870,6 @@ p {
   gap: 0.65rem;
 }
 
-.site-nav-cta,
 .hero-actions a,
 .inline-form button,
 .auth-actions button,
@@ -908,7 +895,6 @@ p {
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.25s ease;
 }
 
-.site-nav-cta:hover,
 .hero-actions a:hover,
 .inline-form button:hover,
 .auth-actions button:hover,
@@ -1227,8 +1213,6 @@ p {
   display: grid;
   place-items: center;
   padding: 1.2rem;
-  backdrop-filter: blur(8px);
-  background: rgba(8, 12, 17, 0.46);
 }
 
 .floating-chat-modal {
@@ -1352,7 +1336,6 @@ p {
     background: rgba(255, 255, 255, 0.62);
   }
 
-  .site-nav-cta,
   .hero-actions a,
   .inline-form button,
   .auth-actions button,
@@ -1372,7 +1355,6 @@ p {
     color: var(--ink-0);
   }
 
-  .site-nav-cta:hover,
   .hero-actions a:hover,
   .inline-form button:hover,
   .auth-actions button:hover,
@@ -1392,10 +1374,6 @@ p {
     border-color: rgba(40, 120, 180, 0.35);
     background: rgba(255, 255, 255, 0.86);
     box-shadow: 0 14px 34px rgba(0, 0, 0, 0.1), 0 0 20px rgba(40, 120, 180, 0.08);
-  }
-
-  .floating-chat-overlay {
-    background: rgba(147, 163, 181, 0.42);
   }
 
   .floating-chat-modal {
@@ -1480,10 +1458,6 @@ p {
 
   .site-nav-links::-webkit-scrollbar {
     display: none;
-  }
-
-  .site-nav-cta {
-    order: 2;
   }
 
   .about-grid {

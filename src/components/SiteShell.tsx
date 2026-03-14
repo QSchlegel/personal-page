@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { FloatingAuthChat } from "@/components/FloatingAuthChat";
@@ -10,7 +9,7 @@ import { QSLogo } from "@/components/QSLogo";
 import { ThreeBackground } from "@/components/ThreeBackground";
 import { getRouteMeta, navItems } from "@/config/routes";
 import { siteConfig } from "@/config/site";
-import { easingStandard, springSoft } from "@/lib/motion";
+import { easingStandard } from "@/lib/motion";
 
 function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") {
@@ -46,13 +45,6 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-
-          <motion.div whileHover={reduceMotion ? undefined : { y: -2, scale: 1.04 }} transition={springSoft}>
-            <Link href="/comms" className="site-nav-cta">
-              <MessageSquare className="icon-sm" />
-              Secure Chat
-            </Link>
-          </motion.div>
         </div>
       </header>
 
