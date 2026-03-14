@@ -281,6 +281,17 @@ function ReplicationArrow({ color, paused }: { color: string; paused: boolean })
 /*  Scene composition                                                  */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/*  All nodes treated as peers in a random mesh                        */
+/* ------------------------------------------------------------------ */
+
+const ALL_NODES: { pos: [number, number, number]; label: string; width: number; height: number; fontSize: number; kind: "infra" | "db" }[] = [
+  { pos: LB_POS, label: "LB", width: 0.9, height: 0.45, fontSize: 0.13, kind: "infra" },
+  ...SERVER_POSITIONS.map((sp, i) => ({ pos: sp, label: `SRV ${i + 1}`, width: 0.85, height: 0.4, fontSize: 0.11, kind: "infra" as const })),
+  { pos: DB_PRIMARY, label: "DB Primary", width: 1.0, height: 0.38, fontSize: 0.1, kind: "db" as const },
+  { pos: DB_REPLICA, label: "DB Replica", width: 1.0, height: 0.38, fontSize: 0.1, kind: "db" as const },
+];
+
 function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean }) {
   const accent = isLightMode ? "#2a6496" : "#6ec8ff";
   const green = isLightMode ? "#2d8a4e" : "#5dea8b";
@@ -289,109 +300,74 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
   const dbColor = isLightMode ? "#8a6c2a" : "#f5c45a";
   const replicaLine = isLightMode ? "#7a6832" : "#c8a844";
 
-  /* Build traffic routes (depth: neg-Z = far, pos-Z = near) */
-  const routes = useMemo<TrafficRoute[]>(() => {
+  /* Generate random connections between all nodes (each node = potential customer) */
+  const { connections, routes } = useMemo(() => {
+    const conns: { from: number; to: number }[] = [];
+    const n = ALL_NODES.length;
+
+    /* Each node randomly connects to 2-3 other nodes */
+    for (let i = 0; i < n; i++) {
+      const connCount = 2 + Math.floor(seededRandom(i * 31 + 7) * 2); // 2 or 3
+      const targets = new Set<number>();
+      let attempt = 0;
+      while (targets.size < connCount && attempt < 20) {
+        const candidate = Math.floor(seededRandom(i * 17 + attempt * 13 + 53) * n);
+        if (candidate !== i) targets.add(candidate);
+        attempt++;
+      }
+      for (const t of targets) {
+        /* avoid duplicate edges (only add if i < t, or if reverse doesn't exist) */
+        const exists = conns.some((c) => (c.from === i && c.to === t) || (c.from === t && c.to === i));
+        if (!exists) conns.push({ from: i, to: t });
+      }
+    }
+
+    /* Build traffic routes along each connection */
     const result: TrafficRoute[] = [];
-
-    /* Users → LB (from far back toward LB) */
-    for (let i = 0; i < USER_COUNT; i++) {
-      const ux = (i / (USER_COUNT - 1) - 0.5) * USER_SPREAD;
-      result.push({
-        from: [ux, 0, USER_Z],
-        to: [LB_POS[0], 0, LB_POS[2] + 0.25],
-        delay: seededRandom(i * 7 + 1),
-        speed: 0.35 + seededRandom(i * 3 + 2) * 0.25,
-      });
-    }
-
-    /* LB → Servers */
-    for (let s = 0; s < SERVER_POSITIONS.length; s++) {
-      const sp = SERVER_POSITIONS[s];
-      for (let p = 0; p < 3; p++) {
+    for (let c = 0; c < conns.length; c++) {
+      const fromPos = ALL_NODES[conns[c].from].pos;
+      const toPos = ALL_NODES[conns[c].to].pos;
+      const particleCount = 1 + Math.floor(seededRandom(c * 19 + 3) * 2); // 1-2 particles per edge
+      for (let p = 0; p < particleCount; p++) {
         result.push({
-          from: [LB_POS[0], 0, LB_POS[2] + 0.25],
-          to: [sp[0], 0, sp[2] - 0.22],
-          delay: seededRandom(s * 11 + p * 3 + 10),
-          speed: 0.5 + seededRandom(s * 5 + p + 20) * 0.3,
+          from: [fromPos[0], 0, fromPos[2]],
+          to: [toPos[0], 0, toPos[2]],
+          delay: seededRandom(c * 11 + p * 7 + 1),
+          speed: 0.3 + seededRandom(c * 5 + p + 20) * 0.35,
         });
       }
     }
 
-    /* Servers → DB Primary */
-    for (let s = 0; s < SERVER_POSITIONS.length; s++) {
-      const sp = SERVER_POSITIONS[s];
-      for (let p = 0; p < 2; p++) {
-        result.push({
-          from: [sp[0], 0, sp[2] + 0.22],
-          to: [DB_PRIMARY[0], 0, DB_PRIMARY[2] - 0.2],
-          delay: seededRandom(s * 13 + p + 40),
-          speed: 0.4 + seededRandom(s * 7 + p + 50) * 0.2,
-        });
-      }
-    }
-
-    return result;
-  }, []);
-
-  /* User dots (far back in Z) */
-  const userPositions = useMemo(() => {
-    const arr: [number, number, number][] = [];
-    for (let i = 0; i < USER_COUNT; i++) {
-      arr.push([(i / (USER_COUNT - 1) - 0.5) * USER_SPREAD, 0, USER_Z]);
-    }
-    return arr;
+    return { connections: conns, routes: result };
   }, []);
 
   return (
     <>
-      {/* Users (far back) */}
-      {userPositions.map((pos, i) => (
-        <mesh key={`user-${i}`} position={pos} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.08, 16]} />
-          <meshBasicMaterial color={accent} transparent opacity={0.5} />
-        </mesh>
+      {/* Random connection lines between all nodes */}
+      {connections.map((c, i) => (
+        <ConnectionLine
+          key={`conn-${i}`}
+          from={ALL_NODES[c.from].pos}
+          to={ALL_NODES[c.to].pos}
+          color={lineColor}
+        />
       ))}
 
-      {/* Connection lines: users → LB */}
-      {userPositions.map((pos, i) => (
-        <ConnectionLine key={`ul-${i}`} from={pos} to={[LB_POS[0], 0, LB_POS[2] + 0.25]} color={lineColor} />
-      ))}
+      {/* All nodes rendered as peers */}
+      {ALL_NODES.map((node, i) => {
+        const color = node.kind === "db" ? (node.label === "DB Replica" ? replicaLine : dbColor) : accent;
+        return (
+          <group key={`node-${i}`}>
+            <Node position={node.pos} width={node.width} height={node.height} label={node.label} color={color} accentColor={color} fontSize={node.fontSize} />
+            <HealthPulse position={node.pos} color={green} paused={paused} seed={i * 17 + 3} />
+          </group>
+        );
+      })}
 
-      {/* Load Balancer */}
-      <Node position={LB_POS} width={0.9} height={0.45} label="LB" color={accent} accentColor={accent} />
+      {/* Glow ring on LB */}
       <GlowRing color={accent} paused={paused} />
 
-      {/* Connection lines: LB → Servers */}
-      {SERVER_POSITIONS.map((sp, i) => (
-        <ConnectionLine key={`ls-${i}`} from={[LB_POS[0], 0, LB_POS[2] + 0.25]} to={[sp[0], 0, sp[2] - 0.22]} color={lineColor} />
-      ))}
-
-      {/* Servers */}
-      {SERVER_POSITIONS.map((sp, i) => (
-        <group key={`srv-${i}`}>
-          <Node position={sp} width={0.85} height={0.4} label={`SRV ${i + 1}`} color={accent} accentColor={accent} fontSize={0.11} />
-          <HealthPulse position={sp} color={green} paused={paused} seed={i * 17 + 3} />
-        </group>
-      ))}
-
-      {/* Connection lines: Servers → DB primary */}
-      {SERVER_POSITIONS.map((sp, i) => (
-        <ConnectionLine key={`sd-${i}`} from={[sp[0], 0, sp[2] + 0.22]} to={[DB_PRIMARY[0], 0, DB_PRIMARY[2] - 0.2]} color={lineColor} />
-      ))}
-
-      {/* DB Primary */}
-      <Node position={DB_PRIMARY} width={1.0} height={0.38} label="DB Primary" color={dbColor} accentColor={dbColor} fontSize={0.1} />
-      <HealthPulse position={DB_PRIMARY} color={green} paused={paused} seed={99} />
-
-      {/* DB Replica */}
-      <Node position={DB_REPLICA} width={1.0} height={0.38} label="DB Replica" color={replicaLine} accentColor={replicaLine} fontSize={0.1} />
-      <HealthPulse position={DB_REPLICA} color={green} paused={paused} seed={113} />
-
-      {/* Replication line + particles */}
-      <ConnectionLine from={DB_PRIMARY} to={DB_REPLICA} color={replicaLine} />
-      <ReplicationArrow color={replicaLine} paused={paused} />
-
-      {/* Traffic particles */}
+      {/* Traffic particles along random connections */}
       <TrafficParticles routes={routes} color={trafficColor} paused={paused} />
     </>
   );
