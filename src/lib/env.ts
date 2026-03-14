@@ -8,8 +8,6 @@ const envSchema = z.object({
     .min(32)
     .default("dev-only-secret-change-me-0123456789-abcdefghijklmnopqrstuvwxyz"),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
-  GITHUB_CLIENT_ID: z.string().optional(),
-  GITHUB_CLIENT_SECRET: z.string().optional(),
   GITHUB_API_TOKEN: z.string().optional(),
   ADMIN_EMAIL_ALLOWLIST: z.string().default(""),
   CRON_SECRET: z.string().min(8).default("replace-this-cron-secret"),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Fingerprint, KeyRound, LoaderCircle, Minimize2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
@@ -8,8 +8,6 @@ import { CommsWorkspace } from "@/components/CommsWorkspace";
 import { authClient } from "@/lib/auth-client";
 import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
 
-const CHAT_AUTH_PARAM = "chatAuth";
-const CHAT_AUTH_INTENT = "passkey";
 const PASSKEY_REGISTERED_CODE = "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED";
 const PASSKEY_REGISTERED_MESSAGE = "previously registered";
 
@@ -29,38 +27,10 @@ export function FloatingAuthChat() {
   const [status, setStatus] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("idle");
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [hasCallbackIntent, setHasCallbackIntent] = useState(false);
-  const callbackIntentHandled = useRef(false);
   const reduceMotion = useReducedMotion();
 
   const isSignedIn = Boolean(session?.user?.id);
   const isBusy = step === "busy";
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    setHasCallbackIntent(params.get(CHAT_AUTH_PARAM) === CHAT_AUTH_INTENT);
-  }, []);
-
-  const clearCallbackIntent = useCallback(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const url = new URL(window.location.href);
-    if (!url.searchParams.has(CHAT_AUTH_PARAM)) {
-      return;
-    }
-
-    url.searchParams.delete(CHAT_AUTH_PARAM);
-    const query = url.searchParams.toString();
-    const next = `${url.pathname}${query ? `?${query}` : ""}${url.hash}`;
-    window.history.replaceState({}, "", next);
-    setHasCallbackIntent(false);
-  }, []);
 
   const registerPasskey = useCallback(async (preferLocal: boolean) => {
     const result = await authClient.passkey.addPasskey({
@@ -137,15 +107,6 @@ export function FloatingAuthChat() {
     setStatus(null);
 
     try {
-      if (!isSignedIn) {
-        setStatus("Redirecting to GitHub to register your passkey...");
-        await authClient.signIn.social({
-          provider: "github",
-          callbackURL: "/?chatAuth=passkey",
-        });
-        return;
-      }
-
       const hasLocal = await hasLocalPasskeySupport();
       const registration = await registerPasskey(hasLocal);
       if (registration.ok) {
@@ -159,44 +120,7 @@ export function FloatingAuthChat() {
     } finally {
       setStep("idle");
     }
-  }, [isSignedIn, registerPasskey]);
-
-  useEffect(() => {
-    if (!hasCallbackIntent) {
-      callbackIntentHandled.current = false;
-      return;
-    }
-
-    if (!isSignedIn || callbackIntentHandled.current) {
-      return;
-    }
-
-    callbackIntentHandled.current = true;
-    setStatus("Finishing passkey setup...");
-    setStep("busy");
-
-    void (async () => {
-      if (!hasPasskeySupport()) {
-        setStatus("Passkeys are not supported on this browser/device.");
-        clearCallbackIntent();
-        setStep("idle");
-        return;
-      }
-
-      const hasLocal = await hasLocalPasskeySupport();
-      const registration = await registerPasskey(hasLocal);
-
-      if (registration.ok) {
-        setIsChatOpen(true);
-        setStatus("Secure chat unlocked.");
-      } else {
-        setStatus(registration.message ?? "Passkey setup could not be completed.");
-      }
-
-      clearCallbackIntent();
-      setStep("idle");
-    })();
-  }, [clearCallbackIntent, hasCallbackIntent, isSignedIn, registerPasskey]);
+  }, [registerPasskey]);
 
   return (
     <>
