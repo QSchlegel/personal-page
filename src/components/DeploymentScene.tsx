@@ -9,7 +9,8 @@ import * as THREE from "three";
 /* ------------------------------------------------------------------ */
 
 /* Depth layout: users far back (neg-Z), DBs up front (pos-Z) */
-const LB_POS: [number, number, number] = [0, 0, -1.8];
+/* Increased Z-separation for more distinct layers */
+const LB_POS: [number, number, number] = [0, 0, -2.6];
 
 const SERVER_POSITIONS: [number, number, number][] = [
   [-2.0, 0, 0.4],
@@ -17,14 +18,18 @@ const SERVER_POSITIONS: [number, number, number][] = [
   [2.0, 0, 0.4],
 ];
 
-const DB_PRIMARY: [number, number, number] = [-1.0, 0, 2.2];
-const DB_REPLICA: [number, number, number] = [1.0, 0, 2.2];
+const DB_PRIMARY: [number, number, number] = [-1.0, 0, 3.0];
+const DB_REPLICA: [number, number, number] = [1.0, 0, 3.0];
+
+/* Layer Z-boundaries for separator planes */
+const LAYER_Z_LB = -1.1; /* between LB and Servers */
+const LAYER_Z_SRV = 1.7; /* between Servers and DBs */
 
 /* Ambient mesh: scattered dots that card nodes connect into */
 const AMBIENT_COUNT = 28;
 const AMBIENT_SPREAD_X = 5.5;
-const AMBIENT_SPREAD_Z = 8.0;
-const AMBIENT_Z_CENTER = -1.0;
+const AMBIENT_SPREAD_Z = 10.0;
+const AMBIENT_Z_CENTER = -0.5;
 
 /* ------------------------------------------------------------------ */
 /*  Deterministic pseudo-random                                        */
@@ -129,24 +134,6 @@ function Node({ position, width, height, label, color, accentColor, fontSize = 0
         <spriteMaterial map={texture} transparent />
       </sprite>
     </group>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Static connection lines                                            */
-/* ------------------------------------------------------------------ */
-
-function ConnectionLine({ from, to, color }: { from: [number, number, number]; to: [number, number, number]; color: string }) {
-  const geometry = useMemo(() => {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute([...from, ...to], 3));
-    return g;
-  }, [from, to]);
-
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial color={color} transparent opacity={0.18} />
-    </lineSegments>
   );
 }
 
@@ -280,6 +267,246 @@ function ReplicationArrow({ color, paused }: { color: string; paused: boolean })
 }
 
 /* ------------------------------------------------------------------ */
+/*  Layer separator planes                                             */
+/* ------------------------------------------------------------------ */
+
+function LayerSeparator({
+  zPos,
+  color,
+  width = 8,
+  depth = 0.02,
+}: {
+  zPos: number;
+  color: string;
+  width?: number;
+  depth?: number;
+}) {
+  return (
+    <group position={[0, 0.005, zPos]}>
+      {/* faint horizontal line */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width, depth]} />
+        <meshBasicMaterial color={color} transparent opacity={0.25} />
+      </mesh>
+      {/* subtle glow strip */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width, 0.35]} />
+        <meshBasicMaterial color={color} transparent opacity={0.04} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Layer label (tiny text floating above separator)                   */
+/* ------------------------------------------------------------------ */
+
+function LayerLabel({
+  text,
+  position,
+  color,
+}: {
+  text: string;
+  position: [number, number, number];
+  color: string;
+}) {
+  const canvas = useMemo(() => {
+    const c = document.createElement("canvas");
+    const s = 256;
+    c.width = s;
+    c.height = 64;
+    const ctx = c.getContext("2d")!;
+    ctx.clearRect(0, 0, s, 64);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.45;
+    ctx.font = `bold ${Math.round(s * 0.12)}px monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, s / 2, 32);
+    return c;
+  }, [text, color]);
+
+  const texture = useMemo(() => {
+    const t = new THREE.CanvasTexture(canvas);
+    t.needsUpdate = true;
+    return t;
+  }, [canvas]);
+
+  return (
+    <sprite scale={[1.2, 0.3, 1]} position={position}>
+      <spriteMaterial map={texture} transparent opacity={0.5} />
+    </sprite>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Animated ambient mesh dots                                         */
+/* ------------------------------------------------------------------ */
+
+function AnimatedAmbientDots({
+  positions,
+  color,
+  paused,
+}: {
+  positions: [number, number, number][];
+  color: string;
+  paused: boolean;
+}) {
+  const count = positions.length;
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const circleGeo = useMemo(() => new THREE.CircleGeometry(0.05, 12), []);
+
+  /* Pre-compute per-dot drift parameters */
+  const driftParams = useMemo(
+    () =>
+      positions.map((_, i) => ({
+        freqX: 0.15 + seededRandom(i * 53 + 1) * 0.2,
+        freqZ: 0.12 + seededRandom(i * 61 + 2) * 0.18,
+        ampX: 0.15 + seededRandom(i * 71 + 3) * 0.25,
+        ampZ: 0.12 + seededRandom(i * 79 + 4) * 0.22,
+        phaseX: seededRandom(i * 83 + 5) * Math.PI * 2,
+        phaseZ: seededRandom(i * 89 + 6) * Math.PI * 2,
+      })),
+    [positions],
+  );
+
+  useFrame(({ clock }) => {
+    if (paused || !ref.current) return;
+    const t = clock.getElapsedTime();
+    for (let i = 0; i < count; i++) {
+      const base = positions[i];
+      const d = driftParams[i];
+      dummy.position.set(
+        base[0] + Math.sin(t * d.freqX + d.phaseX) * d.ampX,
+        base[1],
+        base[2] + Math.cos(t * d.freqZ + d.phaseZ) * d.ampZ,
+      );
+      dummy.rotation.set(-Math.PI / 2, 0, 0);
+      dummy.updateMatrix();
+      ref.current.setMatrixAt(i, dummy.matrix);
+    }
+    ref.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={ref} args={[circleGeo, undefined, count]}>
+      <meshBasicMaterial color={color} transparent opacity={0.4} />
+    </instancedMesh>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Animated connection lines (follow drifting ambient dots)           */
+/* ------------------------------------------------------------------ */
+
+function AnimatedConnectionLines({
+  edges,
+  allPositions,
+  ambientPositions,
+  cardCount,
+  lineColor,
+  meshLineColor,
+  paused,
+}: {
+  edges: { from: number; to: number }[];
+  allPositions: [number, number, number][];
+  ambientPositions: [number, number, number][];
+  cardCount: number;
+  lineColor: string;
+  meshLineColor: string;
+  paused: boolean;
+}) {
+  /* Pre-compute per-dot drift params (same as AnimatedAmbientDots) */
+  const driftParams = useMemo(
+    () =>
+      ambientPositions.map((_, i) => ({
+        freqX: 0.15 + seededRandom(i * 53 + 1) * 0.2,
+        freqZ: 0.12 + seededRandom(i * 61 + 2) * 0.18,
+        ampX: 0.15 + seededRandom(i * 71 + 3) * 0.25,
+        ampZ: 0.12 + seededRandom(i * 79 + 4) * 0.22,
+        phaseX: seededRandom(i * 83 + 5) * Math.PI * 2,
+        phaseZ: seededRandom(i * 89 + 6) * Math.PI * 2,
+      })),
+    [ambientPositions],
+  );
+
+  /* Separate edges by type for different colors */
+  const cardEdges = useMemo(() => edges.filter((e) => e.from < cardCount || e.to < cardCount), [edges, cardCount]);
+  const meshEdges = useMemo(() => edges.filter((e) => e.from >= cardCount && e.to >= cardCount), [edges, cardCount]);
+
+  const cardLineRef = useRef<THREE.LineSegments>(null);
+  const meshLineRef = useRef<THREE.LineSegments>(null);
+
+  const cardPositions = useMemo(() => new Float32Array(cardEdges.length * 6), [cardEdges]);
+  const meshPositions = useMemo(() => new Float32Array(meshEdges.length * 6), [meshEdges]);
+
+  const getDriftedPos = (idx: number, t: number): [number, number, number] => {
+    const base = allPositions[idx];
+    if (idx < cardCount) return base; /* Card nodes don't drift */
+    const ambIdx = idx - cardCount;
+    const d = driftParams[ambIdx];
+    return [
+      base[0] + Math.sin(t * d.freqX + d.phaseX) * d.ampX,
+      base[1],
+      base[2] + Math.cos(t * d.freqZ + d.phaseZ) * d.ampZ,
+    ];
+  };
+
+  useFrame(({ clock }) => {
+    if (paused) return;
+    const t = clock.getElapsedTime();
+
+    if (cardLineRef.current) {
+      const attr = cardLineRef.current.geometry.attributes.position as THREE.BufferAttribute;
+      const pos = attr.array as Float32Array;
+      for (let i = 0; i < cardEdges.length; i++) {
+        const e = cardEdges[i];
+        const from = getDriftedPos(e.from, t);
+        const to = getDriftedPos(e.to, t);
+        pos[i * 6] = from[0]; pos[i * 6 + 1] = from[1]; pos[i * 6 + 2] = from[2];
+        pos[i * 6 + 3] = to[0]; pos[i * 6 + 4] = to[1]; pos[i * 6 + 5] = to[2];
+      }
+      attr.needsUpdate = true;
+    }
+
+    if (meshLineRef.current) {
+      const attr = meshLineRef.current.geometry.attributes.position as THREE.BufferAttribute;
+      const pos = attr.array as Float32Array;
+      for (let i = 0; i < meshEdges.length; i++) {
+        const e = meshEdges[i];
+        const from = getDriftedPos(e.from, t);
+        const to = getDriftedPos(e.to, t);
+        pos[i * 6] = from[0]; pos[i * 6 + 1] = from[1]; pos[i * 6 + 2] = from[2];
+        pos[i * 6 + 3] = to[0]; pos[i * 6 + 4] = to[1]; pos[i * 6 + 5] = to[2];
+      }
+      attr.needsUpdate = true;
+    }
+  });
+
+  return (
+    <>
+      {cardEdges.length > 0 && (
+        <lineSegments ref={cardLineRef}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[cardPositions, 3]} />
+          </bufferGeometry>
+          <lineBasicMaterial color={lineColor} transparent opacity={0.18} />
+        </lineSegments>
+      )}
+      {meshEdges.length > 0 && (
+        <lineSegments ref={meshLineRef}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[meshPositions, 3]} />
+          </bufferGeometry>
+          <lineBasicMaterial color={meshLineColor} transparent opacity={0.18} />
+        </lineSegments>
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Scene composition                                                  */
 /* ------------------------------------------------------------------ */
 
@@ -403,28 +630,33 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
     return result;
   }, [cardCount]);
 
+  const separatorColor = isLightMode ? "#6a8aaa" : "#4a7a9a";
+  const labelColor = isLightMode ? "#4a6a8a" : "#7ab0d8";
+
   return (
     <>
-      {/* Ambient mesh dots */}
-      {MESH.ambientPositions.map((pos, i) => (
-        <mesh key={`dot-${i}`} position={pos} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.05, 12]} />
-          <meshBasicMaterial color={dotColor} transparent opacity={0.4} />
-        </mesh>
-      ))}
+      {/* Layer separator planes */}
+      <LayerSeparator zPos={LAYER_Z_LB} color={separatorColor} />
+      <LayerSeparator zPos={LAYER_Z_SRV} color={separatorColor} />
 
-      {/* All connection lines (ambient↔ambient fainter, card-touching brighter) */}
-      {MESH.edges.map((e, i) => {
-        const touchesCard = e.from < cardCount || e.to < cardCount;
-        return (
-          <ConnectionLine
-            key={`edge-${i}`}
-            from={MESH.allPositions[e.from]}
-            to={MESH.allPositions[e.to]}
-            color={touchesCard ? lineColor : meshLineColor}
-          />
-        );
-      })}
+      {/* Layer labels */}
+      <LayerLabel text="LOAD BALANCER" position={[-3.2, 0.3, LB_POS[2]]} color={labelColor} />
+      <LayerLabel text="APPLICATION" position={[-3.2, 0.3, SERVER_POSITIONS[0][2]]} color={labelColor} />
+      <LayerLabel text="DATA" position={[-3.2, 0.3, DB_PRIMARY[2]]} color={labelColor} />
+
+      {/* Animated ambient mesh dots */}
+      <AnimatedAmbientDots positions={MESH.ambientPositions} color={dotColor} paused={paused} />
+
+      {/* Animated connection lines that follow drifting dots */}
+      <AnimatedConnectionLines
+        edges={MESH.edges}
+        allPositions={MESH.allPositions}
+        ambientPositions={MESH.ambientPositions}
+        cardCount={cardCount}
+        lineColor={lineColor}
+        meshLineColor={meshLineColor}
+        paused={paused}
+      />
 
       {/* Card nodes (labeled boxes) */}
       {CARD_NODES.map((node, i) => {
@@ -489,10 +721,10 @@ export function DeploymentScene({ className }: { className?: string }) {
   return (
     <div aria-hidden className={className ? `deployment-scene ${className}` : "deployment-scene"}>
       <Canvas
-        camera={{ position: [0, 5.5, 4.5], fov: 45 }}
+        camera={{ position: [0, 6.0, 5.2], fov: 45 }}
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true }}
-        onCreated={({ camera }) => camera.lookAt(0, 0, -0.8)}
+        onCreated={({ camera }) => camera.lookAt(0, 0, -0.4)}
       >
         <Scene paused={isPaused} isLightMode={isLightMode} />
       </Canvas>
