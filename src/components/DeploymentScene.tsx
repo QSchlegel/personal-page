@@ -10,25 +10,25 @@ import * as THREE from "three";
 
 /* Depth layout: users far back (neg-Z), DBs up front (pos-Z) */
 /* Increased Z-separation for more distinct layers */
-const LB_POS: [number, number, number] = [0, 0, -2.6];
+const LB_POS: [number, number, number] = [0, 0, -3.2];
 
 const SERVER_POSITIONS: [number, number, number][] = [
-  [-2.0, 0, 0.4],
+  [-2.4, 0, 0.4],
   [0, 0, 0.4],
-  [2.0, 0, 0.4],
+  [2.4, 0, 0.4],
 ];
 
-const DB_PRIMARY: [number, number, number] = [-1.0, 0, 3.0];
-const DB_REPLICA: [number, number, number] = [1.0, 0, 3.0];
+const DB_PRIMARY: [number, number, number] = [-1.2, 0, 3.6];
+const DB_REPLICA: [number, number, number] = [1.2, 0, 3.6];
 
 /* Layer Z-boundaries for separator planes */
-const LAYER_Z_LB = -1.1; /* between LB and Servers */
-const LAYER_Z_SRV = 1.7; /* between Servers and DBs */
+const LAYER_Z_LB = -1.4; /* between LB and Servers */
+const LAYER_Z_SRV = 2.0; /* between Servers and DBs */
 
 /* Ambient mesh: scattered dots that card nodes connect into */
-const AMBIENT_COUNT = 28;
-const AMBIENT_SPREAD_X = 5.5;
-const AMBIENT_SPREAD_Z = 10.0;
+const AMBIENT_COUNT = 48;
+const AMBIENT_SPREAD_X = 10.0;
+const AMBIENT_SPREAD_Z = 14.0;
 const AMBIENT_Z_CENTER = -0.5;
 
 /* ------------------------------------------------------------------ */
@@ -74,7 +74,7 @@ function GlowRing({ color, paused }: { color: string; paused: boolean }) {
 
   return (
     <mesh ref={ref} position={[LB_POS[0], 0.01, LB_POS[2]]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.38, 0.44, 32]} />
+      <ringGeometry args={[0.52, 0.58, 32]} />
       <meshBasicMaterial color={color} transparent opacity={0.18} side={THREE.DoubleSide} />
     </mesh>
   );
@@ -94,18 +94,18 @@ interface NodeProps {
   fontSize?: number;
 }
 
-function Node({ position, width, height, label, color, accentColor, fontSize = 0.13 }: NodeProps) {
-  const shape = useMemo(() => roundedRectShape(width, height, 0.08), [width, height]);
+function Node({ position, width, height, label, color, accentColor, fontSize = 0.16 }: NodeProps) {
+  const shape = useMemo(() => roundedRectShape(width, height, 0.1), [width, height]);
 
   const textCanvas = useMemo(() => {
     const c = document.createElement("canvas");
-    const s = 256;
+    const s = 512;
     c.width = s;
     c.height = s;
     const ctx = c.getContext("2d")!;
     ctx.clearRect(0, 0, s, s);
     ctx.fillStyle = accentColor;
-    ctx.font = `bold ${Math.round(s * 0.18)}px monospace`;
+    ctx.font = `bold ${Math.round(s * 0.16)}px monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, s / 2, s / 2);
@@ -120,17 +120,18 @@ function Node({ position, width, height, label, color, accentColor, fontSize = 0
 
   return (
     <group position={position}>
-      {/* outline – flat on ground (XZ plane) */}
+      {/* filled background – flat on ground (XZ plane) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <shapeGeometry args={[shape]} />
-        <meshBasicMaterial color={color} transparent opacity={0.12} />
+        <meshBasicMaterial color={color} transparent opacity={0.18} />
       </mesh>
+      {/* border outline */}
       <lineSegments rotation={[-Math.PI / 2, 0, 0]}>
         <edgesGeometry args={[new THREE.ShapeGeometry(shape)]} />
-        <lineBasicMaterial color={color} transparent opacity={0.55} />
+        <lineBasicMaterial color={color} transparent opacity={0.7} />
       </lineSegments>
       {/* label – billboard sprite stays readable */}
-      <sprite scale={[fontSize * 5, fontSize * 5, 1]} position={[0, 0.35, 0]}>
+      <sprite scale={[fontSize * 6, fontSize * 6, 1]} position={[0, 0.4, 0]}>
         <spriteMaterial map={texture} transparent />
       </sprite>
     </group>
@@ -144,8 +145,29 @@ function Node({ position, width, height, label, color, accentColor, fontSize = 0
 interface TrafficRoute {
   from: [number, number, number];
   to: [number, number, number];
+  mid: [number, number, number]; /* arc control point for curved paths */
   delay: number;
   speed: number;
+}
+
+/* Quadratic bezier interpolation for curved traffic paths */
+function bezierPoint(
+  from: [number, number, number],
+  mid: [number, number, number],
+  to: [number, number, number],
+  t: number,
+): [number, number, number] {
+  const u = 1 - t;
+  return [
+    u * u * from[0] + 2 * u * t * mid[0] + t * t * to[0],
+    u * u * from[1] + 2 * u * t * mid[1] + t * t * to[1],
+    u * u * from[2] + 2 * u * t * mid[2] + t * t * to[2],
+  ];
+}
+
+/* Ease-in-out for realistic acceleration/deceleration */
+function easeInOut(t: number): number {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
 function TrafficParticles({
@@ -163,10 +185,10 @@ function TrafficParticles({
   const offsets = useMemo(() => routes.map((r) => r.delay), [routes]);
   const speeds = useMemo(() => routes.map((r) => r.speed), [routes]);
   const initialPositions = useMemo(() => new Float32Array(count * 3), [count]);
-  const sizes = useMemo(() => {
-    const s = new Float32Array(count);
-    s.fill(0.045);
-    return s;
+  const initialOpacities = useMemo(() => {
+    const o = new Float32Array(count);
+    o.fill(1.0);
+    return o;
   }, [count]);
 
   const clockRef = useRef(0);
@@ -180,11 +202,13 @@ function TrafficParticles({
 
     for (let i = 0; i < count; i++) {
       const route = routes[i];
-      const progress = ((t * speeds[i] + offsets[i]) % 1 + 1) % 1;
+      const rawProgress = ((t * speeds[i] + offsets[i]) % 1 + 1) % 1;
+      const progress = easeInOut(rawProgress);
 
-      pos[i * 3] = route.from[0] + (route.to[0] - route.from[0]) * progress;
-      pos[i * 3 + 1] = route.from[1] + (route.to[1] - route.from[1]) * progress;
-      pos[i * 3 + 2] = route.from[2] + (route.to[2] - route.from[2]) * progress;
+      const p = bezierPoint(route.from, route.mid, route.to, progress);
+      pos[i * 3] = p[0];
+      pos[i * 3 + 1] = p[1];
+      pos[i * 3 + 2] = p[2];
     }
 
     attr.needsUpdate = true;
@@ -194,9 +218,9 @@ function TrafficParticles({
     <points ref={ref}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[initialPositions, 3]} />
-        <bufferAttribute attach="attributes-size" args={[sizes, 1]} />
+        <bufferAttribute attach="attributes-opacity" args={[initialOpacities, 1]} />
       </bufferGeometry>
-      <pointsMaterial color={color} size={0.06} sizeAttenuation transparent opacity={0.85} depthWrite={false} />
+      <pointsMaterial color={color} size={0.07} sizeAttenuation transparent opacity={0.9} depthWrite={false} />
     </points>
   );
 }
@@ -239,7 +263,7 @@ function HealthPulse({
 
 function ReplicationArrow({ color, paused }: { color: string; paused: boolean }) {
   const ref = useRef<THREE.Points>(null);
-  const count = 4;
+  const count = 6; /* 4 forward (primary→replica) + 2 reverse (ack) */
   const initialPositions = useMemo(() => new Float32Array(count * 3), []);
 
   useFrame(({ clock }) => {
@@ -247,11 +271,21 @@ function ReplicationArrow({ color, paused }: { color: string; paused: boolean })
     const t = clock.getElapsedTime();
     const attr = ref.current.geometry.attributes.position as THREE.BufferAttribute;
     const pos = attr.array as Float32Array;
-    for (let i = 0; i < count; i++) {
-      const progress = ((t * 0.4 + i * 0.25) % 1 + 1) % 1;
-      pos[i * 3] = DB_PRIMARY[0] + (DB_REPLICA[0] - DB_PRIMARY[0]) * progress;
-      pos[i * 3 + 1] = 0;
-      pos[i * 3 + 2] = DB_PRIMARY[2];
+    /* Forward replication stream (primary → replica) */
+    for (let i = 0; i < 4; i++) {
+      const progress = ((t * 0.35 + i * 0.25) % 1 + 1) % 1;
+      const eased = easeInOut(progress);
+      pos[i * 3] = DB_PRIMARY[0] + (DB_REPLICA[0] - DB_PRIMARY[0]) * eased;
+      pos[i * 3 + 1] = 0.01;
+      pos[i * 3 + 2] = DB_PRIMARY[2] + Math.sin(progress * Math.PI) * 0.15;
+    }
+    /* Reverse ack stream (replica → primary), slower & offset */
+    for (let i = 4; i < count; i++) {
+      const progress = ((t * 0.25 + (i - 4) * 0.5 + 0.3) % 1 + 1) % 1;
+      const eased = easeInOut(progress);
+      pos[i * 3] = DB_REPLICA[0] + (DB_PRIMARY[0] - DB_REPLICA[0]) * eased;
+      pos[i * 3 + 1] = 0.01;
+      pos[i * 3 + 2] = DB_PRIMARY[2] - Math.sin(progress * Math.PI) * 0.1;
     }
     attr.needsUpdate = true;
   });
@@ -261,7 +295,7 @@ function ReplicationArrow({ color, paused }: { color: string; paused: boolean })
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[initialPositions, 3]} />
       </bufferGeometry>
-      <pointsMaterial color={color} size={0.04} sizeAttenuation transparent opacity={0.55} depthWrite={false} />
+      <pointsMaterial color={color} size={0.05} sizeAttenuation transparent opacity={0.6} depthWrite={false} />
     </points>
   );
 }
@@ -515,10 +549,10 @@ function AnimatedConnectionLines({
 /* ------------------------------------------------------------------ */
 
 const CARD_NODES: { pos: [number, number, number]; label: string; width: number; height: number; fontSize: number; kind: "infra" | "db" }[] = [
-  { pos: LB_POS, label: "LB", width: 0.9, height: 0.45, fontSize: 0.13, kind: "infra" },
-  ...SERVER_POSITIONS.map((sp, i) => ({ pos: sp, label: `SRV ${i + 1}`, width: 0.85, height: 0.4, fontSize: 0.11, kind: "infra" as const })),
-  { pos: DB_PRIMARY, label: "DB Primary", width: 1.0, height: 0.38, fontSize: 0.1, kind: "db" as const },
-  { pos: DB_REPLICA, label: "DB Replica", width: 1.0, height: 0.38, fontSize: 0.1, kind: "db" as const },
+  { pos: LB_POS, label: "LB", width: 1.2, height: 0.6, fontSize: 0.18, kind: "infra" },
+  ...SERVER_POSITIONS.map((sp, i) => ({ pos: sp, label: `SRV ${i + 1}`, width: 1.1, height: 0.55, fontSize: 0.15, kind: "infra" as const })),
+  { pos: DB_PRIMARY, label: "DB Primary", width: 1.3, height: 0.5, fontSize: 0.14, kind: "db" as const },
+  { pos: DB_REPLICA, label: "DB Replica", width: 1.3, height: 0.5, fontSize: 0.14, kind: "db" as const },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -608,25 +642,74 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
 
   const cardCount = CARD_NODES.length;
 
-  /* Build traffic routes along edges that touch card nodes */
+  /* Build traffic routes: realistic multi-hop flow LB → SRV → DB */
   const routes = useMemo<TrafficRoute[]>(() => {
     const result: TrafficRoute[] = [];
+
+    /* Primary routes: LB → each server (request distribution) */
+    for (let s = 0; s < SERVER_POSITIONS.length; s++) {
+      const from: [number, number, number] = [LB_POS[0], 0, LB_POS[2]];
+      const to: [number, number, number] = [SERVER_POSITIONS[s][0], 0, SERVER_POSITIONS[s][2]];
+      const mid: [number, number, number] = [
+        (from[0] + to[0]) / 2 + (seededRandom(s * 7 + 1) - 0.5) * 0.6,
+        0.05,
+        (from[2] + to[2]) / 2,
+      ];
+      for (let p = 0; p < 3; p++) {
+        result.push({ from, to, mid, delay: seededRandom(s * 11 + p * 3), speed: 0.22 + seededRandom(s * 5 + p) * 0.15 });
+      }
+    }
+
+    /* Server → DB routes (queries) */
+    for (let s = 0; s < SERVER_POSITIONS.length; s++) {
+      const from: [number, number, number] = [SERVER_POSITIONS[s][0], 0, SERVER_POSITIONS[s][2]];
+      const dbTarget = s < 2 ? DB_PRIMARY : DB_REPLICA;
+      const to: [number, number, number] = [dbTarget[0], 0, dbTarget[2]];
+      const mid: [number, number, number] = [
+        (from[0] + to[0]) / 2 + (seededRandom(s * 13 + 50) - 0.5) * 0.4,
+        0.03,
+        (from[2] + to[2]) / 2,
+      ];
+      for (let p = 0; p < 2; p++) {
+        result.push({ from, to, mid, delay: seededRandom(s * 9 + p * 5 + 30), speed: 0.18 + seededRandom(s * 3 + p + 40) * 0.12 });
+      }
+    }
+
+    /* DB → Server response routes */
+    for (let s = 0; s < SERVER_POSITIONS.length; s++) {
+      const dbSource = s < 2 ? DB_PRIMARY : DB_REPLICA;
+      const from: [number, number, number] = [dbSource[0], 0, dbSource[2]];
+      const to: [number, number, number] = [SERVER_POSITIONS[s][0], 0, SERVER_POSITIONS[s][2]];
+      const mid: [number, number, number] = [
+        (from[0] + to[0]) / 2 + (seededRandom(s * 17 + 70) - 0.5) * 0.5,
+        0.04,
+        (from[2] + to[2]) / 2,
+      ];
+      result.push({ from, to, mid, delay: seededRandom(s * 7 + 80), speed: 0.2 + seededRandom(s * 11 + 90) * 0.1 });
+    }
+
+    /* Ambient mesh traffic (background network chatter) */
     for (let c = 0; c < MESH.edges.length; c++) {
       const e = MESH.edges[c];
-      /* Only animate traffic on edges connected to a card node */
-      if (e.from >= cardCount && e.to >= cardCount) continue;
-      const fromPos = MESH.allPositions[e.from];
-      const toPos = MESH.allPositions[e.to];
-      const particleCount = 1 + Math.floor(seededRandom(c * 19 + 3) * 2);
-      for (let p = 0; p < particleCount; p++) {
+      if (e.from >= cardCount && e.to >= cardCount) {
+        if (seededRandom(c * 23 + 100) > 0.7) continue; /* sparse background traffic */
+        const fromPos = MESH.allPositions[e.from];
+        const toPos = MESH.allPositions[e.to];
+        const mid: [number, number, number] = [
+          (fromPos[0] + toPos[0]) / 2 + (seededRandom(c * 29 + 110) - 0.5) * 0.3,
+          0,
+          (fromPos[2] + toPos[2]) / 2 + (seededRandom(c * 31 + 120) - 0.5) * 0.3,
+        ];
         result.push({
           from: [fromPos[0], 0, fromPos[2]],
           to: [toPos[0], 0, toPos[2]],
-          delay: seededRandom(c * 11 + p * 7 + 1),
-          speed: 0.3 + seededRandom(c * 5 + p + 20) * 0.35,
+          mid,
+          delay: seededRandom(c * 11 + 1),
+          speed: 0.12 + seededRandom(c * 5 + 20) * 0.15,
         });
       }
     }
+
     return result;
   }, [cardCount]);
 
@@ -636,13 +719,13 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
   return (
     <>
       {/* Layer separator planes */}
-      <LayerSeparator zPos={LAYER_Z_LB} color={separatorColor} />
-      <LayerSeparator zPos={LAYER_Z_SRV} color={separatorColor} />
+      <LayerSeparator zPos={LAYER_Z_LB} color={separatorColor} width={12} />
+      <LayerSeparator zPos={LAYER_Z_SRV} color={separatorColor} width={12} />
 
       {/* Layer labels */}
-      <LayerLabel text="LOAD BALANCER" position={[-3.2, 0.3, LB_POS[2]]} color={labelColor} />
-      <LayerLabel text="APPLICATION" position={[-3.2, 0.3, SERVER_POSITIONS[0][2]]} color={labelColor} />
-      <LayerLabel text="DATA" position={[-3.2, 0.3, DB_PRIMARY[2]]} color={labelColor} />
+      <LayerLabel text="LOAD BALANCER" position={[-4.0, 0.3, LB_POS[2]]} color={labelColor} />
+      <LayerLabel text="APPLICATION" position={[-4.0, 0.3, SERVER_POSITIONS[0][2]]} color={labelColor} />
+      <LayerLabel text="DATA" position={[-4.0, 0.3, DB_PRIMARY[2]]} color={labelColor} />
 
       {/* Animated ambient mesh dots */}
       <AnimatedAmbientDots positions={MESH.ambientPositions} color={dotColor} paused={paused} />
@@ -721,7 +804,7 @@ export function DeploymentScene({ className }: { className?: string }) {
   return (
     <div aria-hidden className={className ? `deployment-scene ${className}` : "deployment-scene"}>
       <Canvas
-        camera={{ position: [0, 6.0, 5.2], fov: 45 }}
+        camera={{ position: [0, 7.5, 6.0], fov: 48 }}
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true }}
         onCreated={({ camera }) => camera.lookAt(0, 0, -0.4)}
