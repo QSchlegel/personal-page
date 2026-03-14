@@ -27,6 +27,8 @@ interface ParticleLayerProps {
   pointerScale: number;
   paused: boolean;
   seedOffset: number;
+  driftAmplitude?: number;
+  driftFrequency?: number;
 }
 
 function pseudoRandom(seed: number): number {
@@ -89,8 +91,11 @@ function ParticleLayer({
   pointerScale,
   paused,
   seedOffset,
+  driftAmplitude = 0,
+  driftFrequency = 0,
 }: ParticleLayerProps) {
   const pointsRef = useRef<Points | null>(null);
+  const elapsed = useRef(0);
 
   const positions = useMemo(() => {
     const values = new Float32Array(count * 3);
@@ -111,12 +116,19 @@ function ParticleLayer({
       return;
     }
 
+    elapsed.current += delta;
+
     pointsRef.current.rotation.y += delta * 0.018 * speed;
     pointsRef.current.rotation.x += delta * 0.006 * speed;
     pointsRef.current.rotation.z += delta * 0.004 * speed;
 
-    pointsRef.current.position.x += (pointer.x * pointerScale - pointsRef.current.position.x) * 0.02;
-    pointsRef.current.position.y += (-pointer.y * pointerScale * 0.36 - pointsRef.current.position.y) * 0.02;
+    const driftX = Math.sin(elapsed.current * driftFrequency) * driftAmplitude;
+    const driftY = Math.cos(elapsed.current * driftFrequency * 0.7) * driftAmplitude * 0.5;
+    const driftZ = Math.sin(elapsed.current * driftFrequency * 0.4 + 1.2) * driftAmplitude * 0.8;
+
+    pointsRef.current.position.x += (pointer.x * pointerScale + driftX - pointsRef.current.position.x) * 0.02;
+    pointsRef.current.position.y += (-pointer.y * pointerScale * 0.36 + driftY - pointsRef.current.position.y) * 0.02;
+    pointsRef.current.position.z += (driftZ - pointsRef.current.position.z) * 0.015;
   });
 
   return (
@@ -226,46 +238,55 @@ export function ThreeBackground({ profile }: { profile: MotionProfile }) {
         far: "#5b6f86",
       };
 
+  const fogColor = isLightMode ? "#e8ecf0" : "#0d1117";
+
   return (
     <div aria-hidden className={`scene-background scene-background-${profile}`}>
-      <Canvas camera={{ position: [0, 0, 5], fov: 68 }} dpr={profile === "bold" ? [1, 1.55] : [1, 1.35]}>
+      <Canvas camera={{ position: [0, 0, 8], fov: 75 }} dpr={profile === "bold" ? [1, 1.55] : [1, 1.35]}>
+        <fog attach="fog" args={[fogColor, 18, 52]} />
         <ambientLight intensity={0.74} />
 
         <ParticleLayer
           count={density.farCount}
-          spread={[22, 14, 20]}
+          spread={[38, 24, 36]}
           color={colors.far}
-          size={0.02 * density.sizeScale}
-          opacity={0.26 * density.opacityScale}
-          speed={0.7 * density.speedScale}
+          size={0.03 * density.sizeScale}
+          opacity={0.22 * density.opacityScale}
+          speed={0.5 * density.speedScale}
           pointer={pointer}
-          pointerScale={density.pointerScale * 0.9}
+          pointerScale={density.pointerScale * 0.6}
           paused={isPaused}
           seedOffset={1700}
+          driftAmplitude={1.8}
+          driftFrequency={0.12}
         />
         <ParticleLayer
           count={density.midCount}
-          spread={[16, 10, 14]}
+          spread={[28, 18, 26]}
           color={colors.mid}
-          size={0.024 * density.sizeScale}
-          opacity={0.39 * density.opacityScale}
-          speed={0.95 * density.speedScale}
+          size={0.032 * density.sizeScale}
+          opacity={0.36 * density.opacityScale}
+          speed={0.8 * density.speedScale}
           pointer={pointer}
-          pointerScale={density.pointerScale}
+          pointerScale={density.pointerScale * 0.85}
           paused={isPaused}
           seedOffset={2900}
+          driftAmplitude={1.2}
+          driftFrequency={0.18}
         />
         <ParticleLayer
           count={density.nearCount}
-          spread={[12, 8, 10]}
+          spread={[18, 12, 18]}
           color={colors.near}
-          size={0.028 * density.sizeScale}
-          opacity={0.56 * density.opacityScale}
-          speed={1.18 * density.speedScale}
+          size={0.035 * density.sizeScale}
+          opacity={0.52 * density.opacityScale}
+          speed={1.05 * density.speedScale}
           pointer={pointer}
-          pointerScale={density.pointerScale * 1.08}
+          pointerScale={density.pointerScale * 1.15}
           paused={isPaused}
           seedOffset={4100}
+          driftAmplitude={0.6}
+          driftFrequency={0.25}
         />
       </Canvas>
     </div>
