@@ -155,8 +155,7 @@ button:disabled {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: center;
 }
 
 .brand {
@@ -209,14 +208,6 @@ button:disabled {
   animation: qs-logo-orbit 12s linear infinite;
 }
 
-.qs-logo-bg {
-  fill: rgba(202, 219, 236, 0.12);
-  stroke: rgba(203, 218, 233, 0.92);
-  stroke-width: 1.9;
-  transform-origin: 50% 50%;
-  animation: qs-logo-tile 4.2s cubic-bezier(0.37, 0, 0.26, 1) infinite;
-}
-
 .qs-logo-text {
   fill: var(--ink-0);
   font-family: var(--font-display);
@@ -244,16 +235,6 @@ button:disabled {
   }
 }
 
-@keyframes qs-logo-tile {
-  0%,
-  100% {
-    transform: scale(1) translateY(0);
-  }
-  50% {
-    transform: scale(1.03) translateY(-0.6px);
-  }
-}
-
 @keyframes qs-logo-text {
   0%,
   100% {
@@ -264,46 +245,6 @@ button:disabled {
     opacity: 1;
     transform: translateY(-0.6px);
   }
-}
-
-.site-nav-links {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.site-nav-links a {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--ink-2);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 0.4rem 0.72rem;
-  transition: color 0.22s ease, border-color 0.22s ease, background 0.22s ease, text-shadow 0.22s ease;
-}
-
-.site-nav-links a:hover,
-.site-nav-links a.active {
-  color: var(--accent-1);
-  border-color: rgba(110, 200, 255, 0.25);
-  background: rgba(110, 200, 255, 0.06);
-  text-shadow: 0 0 12px rgba(110, 200, 255, 0.3);
-}
-
-.site-nav-cta {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  border-color: rgba(110, 200, 255, 0.3) !important;
-  color: var(--accent-1) !important;
-}
-
-.site-nav-cta:hover {
-  text-shadow: 0 0 14px rgba(110, 200, 255, 0.4);
 }
 
 .site-main {
@@ -352,6 +293,21 @@ button:disabled {
     inset 0 1px 0 rgba(110, 200, 255, 0.06);
   backdrop-filter: blur(20px) saturate(116%);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  opacity: 0.6;
+}
+
+.panel > *:not(.card-canvas) {
+  position: relative;
+  z-index: 1;
 }
 
 .panel::after {
@@ -882,7 +838,6 @@ p {
   gap: 0.65rem;
 }
 
-.site-nav-cta,
 .hero-actions a,
 .inline-form button,
 .auth-actions button,
@@ -908,7 +863,6 @@ p {
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.25s ease;
 }
 
-.site-nav-cta:hover,
 .hero-actions a:hover,
 .inline-form button:hover,
 .auth-actions button:hover,
@@ -1213,6 +1167,18 @@ p {
   }
 }
 
+.floating-chat-choices {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.floating-chat-choices .floating-chat-trigger {
+  flex: 1;
+  font-size: 0.78rem;
+  padding: 0.52rem 0.72rem;
+}
+
 .floating-chat-status {
   margin: 0;
   color: var(--ink-1);
@@ -1227,8 +1193,6 @@ p {
   display: grid;
   place-items: center;
   padding: 1.2rem;
-  backdrop-filter: blur(8px);
-  background: rgba(8, 12, 17, 0.46);
 }
 
 .floating-chat-modal {
@@ -1325,11 +1289,6 @@ p {
     border-color: rgba(107, 131, 151, 0.34);
   }
 
-  .qs-logo-bg {
-    fill: rgba(79, 109, 138, 0.09);
-    stroke: rgba(95, 118, 138, 0.8);
-  }
-
   .qs-logo-orbit {
     stroke: rgba(91, 115, 136, 0.62);
   }
@@ -1346,13 +1305,6 @@ p {
     fill: #1f2f42;
   }
 
-  .site-nav-links a:hover,
-  .site-nav-links a.active {
-    border-color: rgba(97, 119, 139, 0.4);
-    background: rgba(255, 255, 255, 0.62);
-  }
-
-  .site-nav-cta,
   .hero-actions a,
   .inline-form button,
   .auth-actions button,
@@ -1372,7 +1324,6 @@ p {
     color: var(--ink-0);
   }
 
-  .site-nav-cta:hover,
   .hero-actions a:hover,
   .inline-form button:hover,
   .auth-actions button:hover,
@@ -1392,10 +1343,6 @@ p {
     border-color: rgba(40, 120, 180, 0.35);
     background: rgba(255, 255, 255, 0.86);
     box-shadow: 0 14px 34px rgba(0, 0, 0, 0.1), 0 0 20px rgba(40, 120, 180, 0.08);
-  }
-
-  .floating-chat-overlay {
-    background: rgba(147, 163, 181, 0.42);
   }
 
   .floating-chat-modal {
@@ -1422,7 +1369,6 @@ p {
   .brand::after,
   .qs-logo-orbit,
   .qs-logo-orbit-secondary,
-  .qs-logo-bg,
   .qs-logo-gloss,
   .qs-logo-text,
   .floating-chat-trigger,
@@ -1460,30 +1406,6 @@ p {
 
   .site-nav {
     padding: 0.72rem 0.8rem;
-  }
-
-  .site-nav-inner {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .site-nav-links {
-    width: 100%;
-    order: 3;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-
-  .site-nav-links::-webkit-scrollbar {
-    display: none;
-  }
-
-  .site-nav-cta {
-    order: 2;
   }
 
   .about-grid {

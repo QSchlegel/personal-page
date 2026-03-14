@@ -2,23 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { FloatingAuthChat } from "@/components/FloatingAuthChat";
 import { QSLogo } from "@/components/QSLogo";
 import { ThreeBackground } from "@/components/ThreeBackground";
-import { getRouteMeta, navItems } from "@/config/routes";
+import { getRouteMeta } from "@/config/routes";
 import { siteConfig } from "@/config/site";
-import { easingStandard, springSoft } from "@/lib/motion";
-
-function isActivePath(pathname: string, href: string): boolean {
-  if (href === "/") {
-    return pathname === "/";
-  }
-
-  return pathname.startsWith(href);
-}
+import { easingStandard } from "@/lib/motion";
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
@@ -34,25 +25,6 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="brand" aria-label={`${siteConfig.name} homepage`}>
             <QSLogo className="brand-logo" />
           </Link>
-
-          <nav className="site-nav-links" aria-label="Primary">
-            {navItems.map((item) => {
-              const active = isActivePath(pathname, item.href);
-
-              return (
-                <Link key={item.href} href={item.href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <motion.div whileHover={reduceMotion ? undefined : { y: -2, scale: 1.04 }} transition={springSoft}>
-            <Link href="/comms" className="site-nav-cta">
-              <MessageSquare className="icon-sm" />
-              Secure Chat
-            </Link>
-          </motion.div>
         </div>
       </header>
 
