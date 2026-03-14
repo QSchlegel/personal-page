@@ -7,17 +7,9 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { FloatingAuthChat } from "@/components/FloatingAuthChat";
 import { QSLogo } from "@/components/QSLogo";
 import { ThreeBackground } from "@/components/ThreeBackground";
-import { getRouteMeta, navItems } from "@/config/routes";
+import { getRouteMeta } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { easingStandard } from "@/lib/motion";
-
-function isActivePath(pathname: string, href: string): boolean {
-  if (href === "/") {
-    return pathname === "/";
-  }
-
-  return pathname.startsWith(href);
-}
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
@@ -33,18 +25,6 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="brand" aria-label={`${siteConfig.name} homepage`}>
             <QSLogo className="brand-logo" />
           </Link>
-
-          <nav className="site-nav-links" aria-label="Primary">
-            {navItems.map((item) => {
-              const active = isActivePath(pathname, item.href);
-
-              return (
-                <Link key={item.href} href={item.href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
         </div>
       </header>
 

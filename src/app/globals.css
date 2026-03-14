@@ -155,8 +155,7 @@ button:disabled {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: center;
 }
 
 .brand {
@@ -246,34 +245,6 @@ button:disabled {
     opacity: 1;
     transform: translateY(-0.6px);
   }
-}
-
-.site-nav-links {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.site-nav-links a {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--ink-2);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 0.4rem 0.72rem;
-  transition: color 0.22s ease, border-color 0.22s ease, background 0.22s ease, text-shadow 0.22s ease;
-}
-
-.site-nav-links a:hover,
-.site-nav-links a.active {
-  color: var(--accent-1);
-  border-color: rgba(110, 200, 255, 0.25);
-  background: rgba(110, 200, 255, 0.06);
-  text-shadow: 0 0 12px rgba(110, 200, 255, 0.3);
 }
 
 .site-main {
@@ -1319,12 +1290,6 @@ p {
     fill: #1f2f42;
   }
 
-  .site-nav-links a:hover,
-  .site-nav-links a.active {
-    border-color: rgba(97, 119, 139, 0.4);
-    background: rgba(255, 255, 255, 0.62);
-  }
-
   .hero-actions a,
   .inline-form button,
   .auth-actions button,
@@ -1426,26 +1391,6 @@ p {
 
   .site-nav {
     padding: 0.72rem 0.8rem;
-  }
-
-  .site-nav-inner {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .site-nav-links {
-    width: 100%;
-    order: 3;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-
-  .site-nav-links::-webkit-scrollbar {
-    display: none;
   }
 
   .about-grid {
