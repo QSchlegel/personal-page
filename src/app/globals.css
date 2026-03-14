@@ -1119,8 +1119,9 @@ p {
 
 .floating-chat-dock {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin-inline: auto;
   bottom: max(1rem, env(safe-area-inset-bottom));
   z-index: 45;
   width: min(94vw, 460px);
