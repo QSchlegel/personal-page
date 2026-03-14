@@ -57,6 +57,30 @@ function toPlatformOnly(
   };
 }
 
+/**
+ * Ensure an authenticated session exists so passkey registration can proceed.
+ * If no session, silently creates a bootstrap user via email signup.
+ */
+export async function ensureSessionForPasskey(): Promise<{ ok: boolean; error?: string }> {
+  const session = await authClient.getSession();
+  if (session.data?.user?.id) {
+    return { ok: true };
+  }
+
+  const id = crypto.randomUUID();
+  const result = await authClient.signUp.email({
+    email: `passkey-${id}@local.invalid`,
+    password: id,
+    name: "Passkey User",
+  });
+
+  if (result.error) {
+    return { ok: false, error: result.error.message ?? "Could not create session." };
+  }
+
+  return { ok: true };
+}
+
 function toPasskeyError(message: string, code = "AUTH_CANCELLED"): PasskeySignInResult {
   return {
     data: null,

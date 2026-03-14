@@ -6,7 +6,12 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { CommsWorkspace } from "@/components/CommsWorkspace";
 import { authClient } from "@/lib/auth-client";
-import { hasLocalPasskeySupport, hasPasskeySupport, signInPasskeyOnThisDevice } from "@/lib/passkey";
+import {
+  ensureSessionForPasskey,
+  hasLocalPasskeySupport,
+  hasPasskeySupport,
+  signInPasskeyOnThisDevice,
+} from "@/lib/passkey";
 
 const PASSKEY_REGISTERED_CODE = "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED";
 const PASSKEY_REGISTERED_MESSAGE = "previously registered";
@@ -114,6 +119,16 @@ export function FloatingAuthChat() {
         return;
       }
 
+      // Ensure we have a session (creates bootstrap user if needed)
+      if (!isSignedIn) {
+        setStatus("Setting up secure access...");
+        const session = await ensureSessionForPasskey();
+        if (!session.ok) {
+          setStatus(session.error ?? "Could not set up secure access.");
+          return;
+        }
+      }
+
       const registration = await registerPasskey();
       if (registration.ok) {
         setIsChatOpen(true);
@@ -126,7 +141,7 @@ export function FloatingAuthChat() {
     } finally {
       setStep("idle");
     }
-  }, [registerPasskey]);
+  }, [isSignedIn, registerPasskey]);
 
   return (
     <>
