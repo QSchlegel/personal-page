@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Fingerprint, LoaderCircle, Minimize2 } from "lucide-react";
+import { Fingerprint, KeyRound, LoaderCircle, Minimize2, Smartphone } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { CommsWorkspace } from "@/components/CommsWorkspace";
 import { authClient } from "@/lib/auth-client";
-import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
+import { hasPasskeySupport } from "@/lib/passkey";
 
 const CHAT_AUTH_PARAM = "chatAuth";
 const CHAT_AUTH_INTENT = "passkey";
@@ -22,16 +22,19 @@ function toErrorMessage(error: AuthError | null | undefined, fallback: string) {
   return error?.message?.trim() || fallback;
 }
 
+type Step = "idle" | "choose" | "busy";
+
 export function FloatingAuthChat() {
   const { data: session, isPending } = authClient.useSession();
   const [status, setStatus] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
+  const [step, setStep] = useState<Step>("idle");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [hasCallbackIntent, setHasCallbackIntent] = useState(false);
   const callbackIntentHandled = useRef(false);
   const reduceMotion = useReducedMotion();
 
   const isSignedIn = Boolean(session?.user?.id);
+  const isBusy = step === "busy";
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -86,7 +89,7 @@ export function FloatingAuthChat() {
   }, []);
 
   const onLaunchSecureChat = useCallback(async () => {
-    if (isBusy || isPending) {
+    if (step !== "idle" || isPending) {
       return;
     }
 
@@ -97,43 +100,72 @@ export function FloatingAuthChat() {
       return;
     }
 
-    setIsBusy(true);
+    setStep("busy");
 
     try {
-      const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
+      const passkeySignIn = await authClient.signIn.passkey();
 
-      if (hasLocalPasskeyAuthenticator) {
-        const passkeySignIn = await authClient.signIn.passkey();
-
-        if (!passkeySignIn.error) {
-          setIsChatOpen(true);
-          setStatus("Secure chat unlocked.");
-          return;
-        }
+      if (!passkeySignIn.error) {
+        setIsChatOpen(true);
+        setStatus("Secure chat unlocked.");
+        setStep("idle");
+        return;
       }
+    } catch {
+      // local passkey attempt failed, fall through to choices
+    }
 
-      if (isSignedIn) {
-        const registration = await registerPasskey(hasLocalPasskeyAuthenticator);
-        if (registration.ok) {
-          setIsChatOpen(true);
-          setStatus("Passkey registered. Secure chat unlocked.");
-        } else {
-          setStatus(registration.message ?? "Passkey registration failed.");
-        }
+    setStatus("No local passkey found.");
+    setStep("choose");
+  }, [step, isPending]);
+
+  const onRegisterPasskey = useCallback(async () => {
+    setStep("busy");
+    setStatus(null);
+
+    try {
+      if (!isSignedIn) {
+        setStatus("Redirecting to GitHub to register your passkey...");
+        await authClient.signIn.social({
+          provider: "github",
+          callbackURL: "/?chatAuth=passkey",
+        });
         return;
       }
 
-      setStatus("Redirecting to GitHub to register your passkey...");
-      await authClient.signIn.social({
-        provider: "github",
-        callbackURL: "/?chatAuth=passkey",
-      });
+      const registration = await registerPasskey(true);
+      if (registration.ok) {
+        setIsChatOpen(true);
+        setStatus("Passkey registered. Secure chat unlocked.");
+      } else {
+        setStatus(registration.message ?? "Passkey registration failed.");
+      }
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Secure access failed.");
+      setStatus(error instanceof Error ? error.message : "Registration failed.");
     } finally {
-      setIsBusy(false);
+      setStep("idle");
     }
-  }, [isBusy, isPending, isSignedIn, registerPasskey]);
+  }, [isSignedIn, registerPasskey]);
+
+  const onOffDevicePasskey = useCallback(async () => {
+    setStep("busy");
+    setStatus(null);
+
+    try {
+      const result = await authClient.signIn.passkey();
+
+      if (!result.error) {
+        setIsChatOpen(true);
+        setStatus("Secure chat unlocked.");
+      } else {
+        setStatus(toErrorMessage(result.error as AuthError, "Off-device passkey failed."));
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Off-device login failed.");
+    } finally {
+      setStep("idle");
+    }
+  }, []);
 
   useEffect(() => {
     if (!hasCallbackIntent) {
@@ -147,18 +179,17 @@ export function FloatingAuthChat() {
 
     callbackIntentHandled.current = true;
     setStatus("Finishing passkey setup...");
-    setIsBusy(true);
+    setStep("busy");
 
     void (async () => {
       if (!hasPasskeySupport()) {
         setStatus("Passkeys are not supported on this browser/device.");
         clearCallbackIntent();
-        setIsBusy(false);
+        setStep("idle");
         return;
       }
 
-      const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
-      const registration = await registerPasskey(hasLocalPasskeyAuthenticator);
+      const registration = await registerPasskey(true);
 
       if (registration.ok) {
         setIsChatOpen(true);
@@ -168,7 +199,7 @@ export function FloatingAuthChat() {
       }
 
       clearCallbackIntent();
-      setIsBusy(false);
+      setStep("idle");
     })();
   }, [clearCallbackIntent, hasCallbackIntent, isSignedIn, registerPasskey]);
 
@@ -180,17 +211,30 @@ export function FloatingAuthChat() {
         animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         transition={{ duration: 0.34 }}
       >
-        <button
-          type="button"
-          className="floating-chat-trigger"
-          onClick={onLaunchSecureChat}
-          disabled={isBusy || isPending}
-          aria-haspopup="dialog"
-          aria-expanded={isChatOpen}
-        >
-          {isBusy ? <LoaderCircle className="icon-sm icon-spin" /> : <Fingerprint className="icon-sm" />}
-          {isBusy ? "Securing..." : "Secure Chat"}
-        </button>
+        {step === "choose" ? (
+          <div className="floating-chat-choices">
+            <button type="button" className="floating-chat-trigger" onClick={onRegisterPasskey}>
+              <KeyRound className="icon-sm" />
+              Register New Passkey
+            </button>
+            <button type="button" className="floating-chat-trigger" onClick={onOffDevicePasskey}>
+              <Smartphone className="icon-sm" />
+              Off-device Passkey
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="floating-chat-trigger"
+            onClick={onLaunchSecureChat}
+            disabled={isBusy || isPending}
+            aria-haspopup="dialog"
+            aria-expanded={isChatOpen}
+          >
+            {isBusy ? <LoaderCircle className="icon-sm icon-spin" /> : <Fingerprint className="icon-sm" />}
+            {isBusy ? "Securing..." : "Secure Chat"}
+          </button>
+        )}
 
         <AnimatePresence>
           {status ? (

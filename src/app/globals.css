@@ -1199,6 +1199,18 @@ p {
   }
 }
 
+.floating-chat-choices {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.floating-chat-choices .floating-chat-trigger {
+  flex: 1;
+  font-size: 0.78rem;
+  padding: 0.52rem 0.72rem;
+}
+
 .floating-chat-status {
   margin: 0;
   color: var(--ink-1);
