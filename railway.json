@@ -7,7 +7,7 @@
   },
   "deploy": {
     "preDeployCommand": null,
-    "startCommand": "npx prisma migrate deploy; npm run start -- --hostname 0.0.0.0",
+    "startCommand": null,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
