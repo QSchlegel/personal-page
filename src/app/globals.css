@@ -510,38 +510,9 @@ p {
   color: var(--ink-1);
 }
 
-.about-scene-cards {
-  position: relative;
-  border: 1px solid rgba(110, 200, 255, 0.1);
+.about-scene-wrap {
   border-radius: var(--radius-md);
   overflow: hidden;
-  min-height: 280px;
-}
-
-.about-scene-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: 0;
-  background: rgba(110, 200, 255, 0.015);
-  pointer-events: none;
-}
-
-.about-scene-cards .about-grid {
-  position: relative;
-  z-index: 1;
-  padding: 1rem;
-}
-
-.about-scene-cards .about-card {
-  backdrop-filter: blur(16px) saturate(120%);
-  background: rgba(8, 16, 26, 0.55);
-}
-
-.about-scene-cards .about-card:hover {
-  background: rgba(8, 16, 26, 0.65);
 }
 
 .deployment-scene {
@@ -1450,13 +1421,6 @@ p {
     color: var(--ink-0);
   }
 
-  .about-scene-cards .about-card {
-    background: rgba(255, 255, 255, 0.6);
-  }
-
-  .about-scene-cards .about-card:hover {
-    background: rgba(255, 255, 255, 0.75);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1514,9 +1478,6 @@ p {
     height: 260px;
   }
 
-  .about-scene-cards .about-grid {
-    grid-template-columns: 1fr;
-  }
 
   .hero-photo-wrap {
     width: min(82vw, 320px);
