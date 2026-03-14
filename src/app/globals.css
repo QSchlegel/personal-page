@@ -1417,22 +1417,12 @@ p {
   }
 
   .floating-chat-dock {
-    left: 0;
-    right: 0;
-    width: 100%;
-    transform: none;
-    bottom: 0;
-    border-radius: 0;
-    border-top: 1px solid rgba(186, 200, 214, 0.18);
-    background: rgba(8, 12, 18, 0.92);
-    backdrop-filter: blur(20px) saturate(118%);
-    padding: 0.6rem 1.2rem max(0.6rem, env(safe-area-inset-bottom));
-    gap: 0.3rem;
+    width: min(94vw, 460px);
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
   .floating-chat-trigger {
-    width: 100%;
-    border-radius: 14px;
+    width: auto;
   }
 
   .floating-chat-status {

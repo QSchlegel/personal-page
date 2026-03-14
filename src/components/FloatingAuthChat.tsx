@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Fingerprint, KeyRound, LoaderCircle, Minimize2, Smartphone } from "lucide-react";
+import { Fingerprint, KeyRound, LoaderCircle, Minimize2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { CommsWorkspace } from "@/components/CommsWorkspace";
 import { authClient } from "@/lib/auth-client";
-import { hasPasskeySupport } from "@/lib/passkey";
+import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
 
 const CHAT_AUTH_PARAM = "chatAuth";
 const CHAT_AUTH_INTENT = "passkey";
@@ -100,6 +100,14 @@ export function FloatingAuthChat() {
       return;
     }
 
+    const hasLocal = await hasLocalPasskeySupport();
+
+    if (!hasLocal) {
+      setStatus("No local passkey authenticator found.");
+      setStep("choose");
+      return;
+    }
+
     setStep("busy");
 
     try {
@@ -112,10 +120,10 @@ export function FloatingAuthChat() {
         return;
       }
     } catch {
-      // local passkey attempt failed, fall through to choices
+      // local passkey sign-in failed, fall through to registration
     }
 
-    setStatus("No local passkey found.");
+    setStatus("No local passkey found. Register one to continue.");
     setStep("choose");
   }, [step, isPending]);
 
@@ -146,26 +154,6 @@ export function FloatingAuthChat() {
       setStep("idle");
     }
   }, [isSignedIn, registerPasskey]);
-
-  const onOffDevicePasskey = useCallback(async () => {
-    setStep("busy");
-    setStatus(null);
-
-    try {
-      const result = await authClient.signIn.passkey();
-
-      if (!result.error) {
-        setIsChatOpen(true);
-        setStatus("Secure chat unlocked.");
-      } else {
-        setStatus(toErrorMessage(result.error as AuthError, "Off-device passkey failed."));
-      }
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Off-device login failed.");
-    } finally {
-      setStep("idle");
-    }
-  }, []);
 
   useEffect(() => {
     if (!hasCallbackIntent) {
@@ -216,10 +204,6 @@ export function FloatingAuthChat() {
             <button type="button" className="floating-chat-trigger" onClick={onRegisterPasskey}>
               <KeyRound className="icon-sm" />
               Register New Passkey
-            </button>
-            <button type="button" className="floating-chat-trigger" onClick={onOffDevicePasskey}>
-              <Smartphone className="icon-sm" />
-              Off-device Passkey
             </button>
           </div>
         ) : (
