@@ -14,7 +14,7 @@ export function QSLogo({ className }: QSLogoProps) {
         y="50%"
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize="23"
+        fontSize="28"
         fontWeight="700"
       >
         QS

@@ -108,6 +108,11 @@ export function FloatingAuthChat() {
       return;
     }
 
+    if (isSignedIn) {
+      setIsChatOpen(true);
+      return;
+    }
+
     setStep("busy");
 
     try {
@@ -125,7 +130,7 @@ export function FloatingAuthChat() {
 
     setStatus("No local passkey found. Register one to continue.");
     setStep("choose");
-  }, [step, isPending]);
+  }, [step, isPending, isSignedIn]);
 
   const onRegisterPasskey = useCallback(async () => {
     setStep("busy");
