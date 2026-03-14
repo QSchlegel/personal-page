@@ -4,7 +4,6 @@ import { authClient } from "@/lib/auth-client";
 
 type PasskeySignInResult = Awaited<ReturnType<typeof authClient.signIn.passkey>>;
 
-const CLIENT_DEVICE_HINT = "client-device";
 const INTERNAL_TRANSPORT = "internal";
 
 export function hasPasskeySupport() {
@@ -31,34 +30,30 @@ export async function hasLocalPasskeySupport() {
   }
 }
 
-function withClientDeviceHint(
+/**
+ * Restrict WebAuthn options to platform-only (internal) transport.
+ * Returns null when there are no credentials to authenticate against,
+ * so the caller can skip the WebAuthn modal entirely and fall through
+ * to registration.
+ */
+function toPlatformOnly(
   optionsJSON: PublicKeyCredentialRequestOptionsJSON,
-): PublicKeyCredentialRequestOptionsJSON {
+): PublicKeyCredentialRequestOptionsJSON | null {
   const allowCredentials = optionsJSON.allowCredentials;
 
+  // No credentials registered — nothing to authenticate against.
   if (!allowCredentials?.length) {
-    return {
-      ...optionsJSON,
-      hints: [CLIENT_DEVICE_HINT],
-    };
+    return null;
   }
 
-  const internalCredentials = allowCredentials.filter((credential) =>
-    credential.transports?.includes(INTERNAL_TRANSPORT),
-  );
-
-  if (!internalCredentials.length) {
-    return {
-      ...optionsJSON,
-      allowCredentials: [],
-      hints: [CLIENT_DEVICE_HINT],
-    };
-  }
-
+  // Force every credential to internal transport only.
+  // This prevents Chrome from showing QR-code / security-key options.
   return {
     ...optionsJSON,
-    allowCredentials: internalCredentials,
-    hints: [CLIENT_DEVICE_HINT],
+    allowCredentials: allowCredentials.map((credential) => ({
+      ...credential,
+      transports: [INTERNAL_TRANSPORT],
+    })),
   };
 }
 
@@ -87,9 +82,15 @@ export async function signInPasskeyOnThisDevice(): Promise<PasskeySignInResult> 
     return optionsResponse as PasskeySignInResult;
   }
 
+  const platformOptions = toPlatformOnly(optionsResponse.data);
+
+  if (!platformOptions) {
+    return toPasskeyError("No passkeys registered on this device.", "NO_CREDENTIALS");
+  }
+
   try {
     const response = await startAuthentication({
-      optionsJSON: withClientDeviceHint(optionsResponse.data),
+      optionsJSON: platformOptions,
     });
 
     const verified = await authClient.$fetch<{ session: unknown; user: unknown }>("/passkey/verify-authentication", {
