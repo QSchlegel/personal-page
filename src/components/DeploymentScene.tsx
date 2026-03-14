@@ -20,9 +20,11 @@ const SERVER_POSITIONS: [number, number, number][] = [
 const DB_PRIMARY: [number, number, number] = [-1.0, 0, 2.2];
 const DB_REPLICA: [number, number, number] = [1.0, 0, 2.2];
 
-const USER_Z = -4.2;
-const USER_SPREAD = 3.2;
-const USER_COUNT = 5;
+/* Ambient mesh: scattered dots that card nodes connect into */
+const AMBIENT_COUNT = 28;
+const AMBIENT_SPREAD_X = 5.5;
+const AMBIENT_SPREAD_Z = 8.0;
+const AMBIENT_Z_CENTER = -1.0;
 
 /* ------------------------------------------------------------------ */
 /*  Deterministic pseudo-random                                        */
@@ -282,52 +284,113 @@ function ReplicationArrow({ color, paused }: { color: string; paused: boolean })
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
-/*  All nodes treated as peers in a random mesh                        */
+/*  Card nodes (labeled infrastructure boxes)                          */
 /* ------------------------------------------------------------------ */
 
-const ALL_NODES: { pos: [number, number, number]; label: string; width: number; height: number; fontSize: number; kind: "infra" | "db" }[] = [
+const CARD_NODES: { pos: [number, number, number]; label: string; width: number; height: number; fontSize: number; kind: "infra" | "db" }[] = [
   { pos: LB_POS, label: "LB", width: 0.9, height: 0.45, fontSize: 0.13, kind: "infra" },
   ...SERVER_POSITIONS.map((sp, i) => ({ pos: sp, label: `SRV ${i + 1}`, width: 0.85, height: 0.4, fontSize: 0.11, kind: "infra" as const })),
   { pos: DB_PRIMARY, label: "DB Primary", width: 1.0, height: 0.38, fontSize: 0.1, kind: "db" as const },
   { pos: DB_REPLICA, label: "DB Replica", width: 1.0, height: 0.38, fontSize: 0.1, kind: "db" as const },
 ];
 
+/* ------------------------------------------------------------------ */
+/*  Build unified mesh: ambient dots + card nodes, random connections  */
+/* ------------------------------------------------------------------ */
+
+function buildMesh() {
+  /* 1. Generate ambient dot positions */
+  const ambientPositions: [number, number, number][] = [];
+  for (let i = 0; i < AMBIENT_COUNT; i++) {
+    ambientPositions.push([
+      (seededRandom(i * 7 + 100) - 0.5) * AMBIENT_SPREAD_X,
+      0,
+      AMBIENT_Z_CENTER + (seededRandom(i * 11 + 200) - 0.5) * AMBIENT_SPREAD_Z,
+    ]);
+  }
+
+  /* 2. Unified position list: [0..CARD_NODES-1] = card nodes, [CARD_NODES..end] = ambient dots */
+  const allPositions: [number, number, number][] = [
+    ...CARD_NODES.map((n) => n.pos),
+    ...ambientPositions,
+  ];
+  const totalNodes = allPositions.length;
+  const cardCount = CARD_NODES.length;
+
+  /* 3. Random connections - ambient↔ambient mesh plus card↔ambient bridges */
+  const edges: { from: number; to: number }[] = [];
+  const addEdge = (a: number, b: number) => {
+    if (a === b) return;
+    const exists = edges.some((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
+    if (!exists) edges.push({ from: a, to: b });
+  };
+
+  /* Each ambient dot connects to 2-3 nearest neighbors (by seeded random selection) */
+  for (let i = cardCount; i < totalNodes; i++) {
+    const connCount = 2 + Math.floor(seededRandom(i * 31 + 7) * 2);
+    let attempt = 0;
+    const targets = new Set<number>();
+    while (targets.size < connCount && attempt < 30) {
+      const candidate = Math.floor(seededRandom(i * 17 + attempt * 13 + 53) * totalNodes);
+      if (candidate !== i) targets.add(candidate);
+      attempt++;
+    }
+    for (const t of targets) addEdge(i, t);
+  }
+
+  /* Each card node connects to 2-4 random ambient dots (bridge into the mesh) */
+  for (let i = 0; i < cardCount; i++) {
+    const connCount = 2 + Math.floor(seededRandom(i * 43 + 300) * 3);
+    let attempt = 0;
+    const targets = new Set<number>();
+    while (targets.size < connCount && attempt < 30) {
+      const candidate = cardCount + Math.floor(seededRandom(i * 19 + attempt * 11 + 400) * AMBIENT_COUNT);
+      targets.add(candidate);
+      attempt++;
+    }
+    for (const t of targets) addEdge(i, t);
+  }
+
+  /* Also keep some card-to-card connections (1-2 per card node) */
+  for (let i = 0; i < cardCount; i++) {
+    const connCount = 1 + Math.floor(seededRandom(i * 37 + 500) * 2);
+    let attempt = 0;
+    const targets = new Set<number>();
+    while (targets.size < connCount && attempt < 20) {
+      const candidate = Math.floor(seededRandom(i * 23 + attempt * 7 + 600) * cardCount);
+      if (candidate !== i) targets.add(candidate);
+      attempt++;
+    }
+    for (const t of targets) addEdge(i, t);
+  }
+
+  return { ambientPositions, allPositions, edges };
+}
+
+const MESH = buildMesh();
+
 function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean }) {
   const accent = isLightMode ? "#2a6496" : "#6ec8ff";
   const green = isLightMode ? "#2d8a4e" : "#5dea8b";
   const lineColor = isLightMode ? "#5a7a96" : "#3a5a72";
+  const meshLineColor = isLightMode ? "#8a9bac" : "#2e4556";
   const trafficColor = isLightMode ? "#3582b8" : "#8ed8ff";
   const dbColor = isLightMode ? "#8a6c2a" : "#f5c45a";
   const replicaLine = isLightMode ? "#7a6832" : "#c8a844";
+  const dotColor = isLightMode ? "#7a8fa3" : "#4a6a82";
 
-  /* Generate random connections between all nodes (each node = potential customer) */
-  const { connections, routes } = useMemo(() => {
-    const conns: { from: number; to: number }[] = [];
-    const n = ALL_NODES.length;
+  const cardCount = CARD_NODES.length;
 
-    /* Each node randomly connects to 2-3 other nodes */
-    for (let i = 0; i < n; i++) {
-      const connCount = 2 + Math.floor(seededRandom(i * 31 + 7) * 2); // 2 or 3
-      const targets = new Set<number>();
-      let attempt = 0;
-      while (targets.size < connCount && attempt < 20) {
-        const candidate = Math.floor(seededRandom(i * 17 + attempt * 13 + 53) * n);
-        if (candidate !== i) targets.add(candidate);
-        attempt++;
-      }
-      for (const t of targets) {
-        /* avoid duplicate edges (only add if i < t, or if reverse doesn't exist) */
-        const exists = conns.some((c) => (c.from === i && c.to === t) || (c.from === t && c.to === i));
-        if (!exists) conns.push({ from: i, to: t });
-      }
-    }
-
-    /* Build traffic routes along each connection */
+  /* Build traffic routes along edges that touch card nodes */
+  const routes = useMemo<TrafficRoute[]>(() => {
     const result: TrafficRoute[] = [];
-    for (let c = 0; c < conns.length; c++) {
-      const fromPos = ALL_NODES[conns[c].from].pos;
-      const toPos = ALL_NODES[conns[c].to].pos;
-      const particleCount = 1 + Math.floor(seededRandom(c * 19 + 3) * 2); // 1-2 particles per edge
+    for (let c = 0; c < MESH.edges.length; c++) {
+      const e = MESH.edges[c];
+      /* Only animate traffic on edges connected to a card node */
+      if (e.from >= cardCount && e.to >= cardCount) continue;
+      const fromPos = MESH.allPositions[e.from];
+      const toPos = MESH.allPositions[e.to];
+      const particleCount = 1 + Math.floor(seededRandom(c * 19 + 3) * 2);
       for (let p = 0; p < particleCount; p++) {
         result.push({
           from: [fromPos[0], 0, fromPos[2]],
@@ -337,24 +400,34 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
         });
       }
     }
-
-    return { connections: conns, routes: result };
-  }, []);
+    return result;
+  }, [cardCount]);
 
   return (
     <>
-      {/* Random connection lines between all nodes */}
-      {connections.map((c, i) => (
-        <ConnectionLine
-          key={`conn-${i}`}
-          from={ALL_NODES[c.from].pos}
-          to={ALL_NODES[c.to].pos}
-          color={lineColor}
-        />
+      {/* Ambient mesh dots */}
+      {MESH.ambientPositions.map((pos, i) => (
+        <mesh key={`dot-${i}`} position={pos} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.05, 12]} />
+          <meshBasicMaterial color={dotColor} transparent opacity={0.4} />
+        </mesh>
       ))}
 
-      {/* All nodes rendered as peers */}
-      {ALL_NODES.map((node, i) => {
+      {/* All connection lines (ambient↔ambient fainter, card-touching brighter) */}
+      {MESH.edges.map((e, i) => {
+        const touchesCard = e.from < cardCount || e.to < cardCount;
+        return (
+          <ConnectionLine
+            key={`edge-${i}`}
+            from={MESH.allPositions[e.from]}
+            to={MESH.allPositions[e.to]}
+            color={touchesCard ? lineColor : meshLineColor}
+          />
+        );
+      })}
+
+      {/* Card nodes (labeled boxes) */}
+      {CARD_NODES.map((node, i) => {
         const color = node.kind === "db" ? (node.label === "DB Replica" ? replicaLine : dbColor) : accent;
         return (
           <group key={`node-${i}`}>
@@ -367,7 +440,7 @@ function Scene({ paused, isLightMode }: { paused: boolean; isLightMode: boolean 
       {/* Glow ring on LB */}
       <GlowRing color={accent} paused={paused} />
 
-      {/* Traffic particles along random connections */}
+      {/* Traffic particles along card-connected edges */}
       <TrafficParticles routes={routes} color={trafficColor} paused={paused} />
     </>
   );
