@@ -209,14 +209,6 @@ button:disabled {
   animation: qs-logo-orbit 12s linear infinite;
 }
 
-.qs-logo-bg {
-  fill: rgba(202, 219, 236, 0.12);
-  stroke: rgba(203, 218, 233, 0.92);
-  stroke-width: 1.9;
-  transform-origin: 50% 50%;
-  animation: qs-logo-tile 4.2s cubic-bezier(0.37, 0, 0.26, 1) infinite;
-}
-
 .qs-logo-text {
   fill: var(--ink-0);
   font-family: var(--font-display);
@@ -241,16 +233,6 @@ button:disabled {
 @keyframes qs-logo-orbit {
   to {
     transform: rotate(360deg);
-  }
-}
-
-@keyframes qs-logo-tile {
-  0%,
-  100% {
-    transform: scale(1) translateY(0);
-  }
-  50% {
-    transform: scale(1.03) translateY(-0.6px);
   }
 }
 
@@ -1321,11 +1303,6 @@ p {
     border-color: rgba(107, 131, 151, 0.34);
   }
 
-  .qs-logo-bg {
-    fill: rgba(79, 109, 138, 0.09);
-    stroke: rgba(95, 118, 138, 0.8);
-  }
-
   .qs-logo-orbit {
     stroke: rgba(91, 115, 136, 0.62);
   }
@@ -1412,7 +1389,6 @@ p {
   .brand::after,
   .qs-logo-orbit,
   .qs-logo-orbit-secondary,
-  .qs-logo-bg,
   .qs-logo-gloss,
   .qs-logo-text,
   .floating-chat-trigger,
