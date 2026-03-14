@@ -146,7 +146,8 @@ export function FloatingAuthChat() {
         return;
       }
 
-      const registration = await registerPasskey(true);
+      const hasLocal = await hasLocalPasskeySupport();
+      const registration = await registerPasskey(hasLocal);
       if (registration.ok) {
         setIsChatOpen(true);
         setStatus("Passkey registered. Secure chat unlocked.");
@@ -182,7 +183,8 @@ export function FloatingAuthChat() {
         return;
       }
 
-      const registration = await registerPasskey(true);
+      const hasLocal = await hasLocalPasskeySupport();
+      const registration = await registerPasskey(hasLocal);
 
       if (registration.ok) {
         setIsChatOpen(true);
