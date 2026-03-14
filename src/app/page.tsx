@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ArrowRight, Github, Mail, MessageSquare } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
+import { CardCanvas } from "@/components/CardCanvas";
 import { TimelineSection } from "@/components/TimelineSection";
 import { siteConfig } from "@/config/site";
 import { cardReveal, fadeInScale, sectionReveal, springSoft, springSnappy, staggerContainer } from "@/lib/motion";
@@ -21,6 +22,7 @@ export default function HomePage() {
         viewport={{ once: true, amount: 0.3 }}
         variants={sectionReveal}
       >
+        <CardCanvas variant="icosahedron" />
         <div className="hero-grid">
           <div className="hero-copy">
             <p className="eyebrow">{siteConfig.heroEyebrow}</p>
@@ -89,6 +91,7 @@ export default function HomePage() {
         viewport={{ once: true, amount: 0.2 }}
         variants={sectionReveal}
       >
+        <CardCanvas variant="octahedron" />
         <div className="section-heading">
           <h2>How I Work</h2>
           <p>{siteConfig.about}</p>
@@ -148,6 +151,7 @@ export default function HomePage() {
         viewport={{ once: true, amount: 0.2 }}
         variants={sectionReveal}
       >
+        <CardCanvas variant="torus" />
         <div className="section-heading">
           <h2>Let&apos;s Build</h2>
           <p>Open a secure thread or reach out directly to collaborate on product and platform work.</p>

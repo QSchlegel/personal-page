@@ -295,6 +295,21 @@ button:disabled {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+.card-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  opacity: 0.6;
+}
+
+.panel > *:not(.card-canvas) {
+  position: relative;
+  z-index: 1;
+}
+
 .panel::after {
   content: "";
   position: absolute;
