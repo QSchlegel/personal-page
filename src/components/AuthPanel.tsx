@@ -36,9 +36,15 @@ export function AuthPanel({ className = "" }: { className?: string }) {
   async function addPasskey() {
     setMessage(null);
     const hasLocalPasskeyAuthenticator = await hasLocalPasskeySupport();
+
+    if (!hasLocalPasskeyAuthenticator) {
+      setMessage("No on-device authenticator available. Use a device with biometric or PIN support.");
+      return;
+    }
+
     const result = await authClient.passkey.addPasskey({
       name: "Portfolio Passkey",
-      ...(hasLocalPasskeyAuthenticator ? { authenticatorAttachment: "platform" as const } : {}),
+      authenticatorAttachment: "platform" as const,
     });
 
     if (result.error) {

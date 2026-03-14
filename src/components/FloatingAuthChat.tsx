@@ -32,10 +32,10 @@ export function FloatingAuthChat() {
   const isSignedIn = Boolean(session?.user?.id);
   const isBusy = step === "busy";
 
-  const registerPasskey = useCallback(async (preferLocal: boolean) => {
+  const registerPasskey = useCallback(async () => {
     const result = await authClient.passkey.addPasskey({
       name: "Portfolio Passkey",
-      ...(preferLocal ? { authenticatorAttachment: "platform" as const } : {}),
+      authenticatorAttachment: "platform" as const,
     });
 
     if (!result.error) {
@@ -108,7 +108,13 @@ export function FloatingAuthChat() {
 
     try {
       const hasLocal = await hasLocalPasskeySupport();
-      const registration = await registerPasskey(hasLocal);
+
+      if (!hasLocal) {
+        setStatus("No on-device authenticator available. Use a device with biometric or PIN support.");
+        return;
+      }
+
+      const registration = await registerPasskey();
       if (registration.ok) {
         setIsChatOpen(true);
         setStatus("Passkey registered. Secure chat unlocked.");
