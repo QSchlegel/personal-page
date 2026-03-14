@@ -4,7 +4,7 @@ import { useState } from "react";
 import { KeyRound, LogOut } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
-import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
+import { hasLocalPasskeySupport, hasPasskeySupport, signInPasskeyOnThisDevice } from "@/lib/passkey";
 
 export function AuthPanel({ className = "" }: { className?: string }) {
   const { data: session, isPending } = authClient.useSession();
@@ -27,7 +27,7 @@ export function AuthPanel({ className = "" }: { className?: string }) {
       return;
     }
 
-    const result = await authClient.signIn.passkey();
+    const result = await signInPasskeyOnThisDevice();
     if (result.error) {
       setMessage(result.error.message ?? "Passkey sign-in failed.");
     }

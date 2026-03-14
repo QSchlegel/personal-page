@@ -33,6 +33,17 @@ export interface TimelineResponse {
   source: "database" | "github-live" | "seed-fallback";
 }
 
+export interface GitHubStatsResponse {
+  username: string;
+  repoCount: number;
+  totalStars: number;
+  featuredCount: number;
+  latestPushAt: string | null;
+  fetchedAt: string;
+  source: "github-live" | "seed-fallback";
+  cacheTtlSeconds: number;
+}
+
 export interface ThreadSummary {
   id: string;
   status: "OPEN" | "RESOLVED" | "ARCHIVED";

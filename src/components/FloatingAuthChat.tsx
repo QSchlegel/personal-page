@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { CommsWorkspace } from "@/components/CommsWorkspace";
 import { authClient } from "@/lib/auth-client";
-import { hasLocalPasskeySupport, hasPasskeySupport } from "@/lib/passkey";
+import { hasLocalPasskeySupport, hasPasskeySupport, signInPasskeyOnThisDevice } from "@/lib/passkey";
 
 const PASSKEY_REGISTERED_CODE = "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED";
 const PASSKEY_REGISTERED_MESSAGE = "previously registered";
@@ -86,7 +86,7 @@ export function FloatingAuthChat() {
     setStep("busy");
 
     try {
-      const passkeySignIn = await authClient.signIn.passkey();
+      const passkeySignIn = await signInPasskeyOnThisDevice();
 
       if (!passkeySignIn.error) {
         setIsChatOpen(true);

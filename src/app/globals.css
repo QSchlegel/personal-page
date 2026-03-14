@@ -546,6 +546,48 @@ p {
   box-shadow: 0 0 14px rgba(110, 200, 255, 0.1);
 }
 
+.stats-panel {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.82rem;
+}
+
+.stats-card {
+  border: 1px solid rgba(179, 195, 211, 0.24);
+  border-radius: var(--radius-md);
+  background: rgba(214, 227, 240, 0.028);
+  padding: 0.95rem;
+  display: grid;
+  gap: 0.34rem;
+}
+
+.stats-label {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  color: var(--ink-2);
+  font-size: 0.82rem;
+}
+
+.stats-card strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+  letter-spacing: 0.01em;
+}
+
+.stats-meta small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  color: var(--ink-2);
+}
+
 .timeline-panel {
   display: grid;
   gap: 0.95rem;
@@ -1397,6 +1439,10 @@ p {
     width: min(70vw, 360px);
   }
 
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .comms-grid {
     grid-template-columns: 1fr;
   }
@@ -1556,6 +1602,10 @@ p {
   .contact-actions a {
     width: 100%;
     justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 
