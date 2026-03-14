@@ -99,29 +99,31 @@ export default function HomePage() {
           <p>{siteConfig.about}</p>
         </div>
 
-        <DeploymentScene />
+        <div className="about-scene-cards">
+          <DeploymentScene className="about-scene-bg" />
 
-        <motion.div
-          className="about-grid"
-          variants={staggerContainer}
-          initial={false}
-          whileInView={reduceMotion ? undefined : "visible"}
-          viewport={{ once: true, amount: 0.25 }}
-        >
-          {siteConfig.approach.map((item, index) => (
-            <motion.article
-              key={item.title}
-              className="about-card"
-              variants={cardReveal}
-              custom={index}
-              whileHover={reduceMotion ? undefined : { y: -4 }}
-              transition={springSoft}
-            >
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </motion.article>
-          ))}
-        </motion.div>
+          <motion.div
+            className="about-grid"
+            variants={staggerContainer}
+            initial={false}
+            whileInView={reduceMotion ? undefined : "visible"}
+            viewport={{ once: true, amount: 0.25 }}
+          >
+            {siteConfig.approach.map((item, index) => (
+              <motion.article
+                key={item.title}
+                className="about-card"
+                variants={cardReveal}
+                custom={index}
+                whileHover={reduceMotion ? undefined : { y: -4 }}
+                transition={springSoft}
+              >
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </motion.article>
+            ))}
+          </motion.div>
+        </div>
 
         <motion.div
           className="skills-cloud"
