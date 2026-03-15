@@ -69,7 +69,7 @@ export default function HomePage() {
             className="hero-photo-wrap"
             initial={false}
             whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, scale: 1 }}
-            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+            whileHover={reduceMotion ? undefined : { scale: 1.035 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.75 }}
           >

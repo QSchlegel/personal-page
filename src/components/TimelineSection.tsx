@@ -20,6 +20,28 @@ function formatProjectDate(value: string | null): string {
   });
 }
 
+const languageColors: Record<string, string> = {
+  TypeScript: "#3178c6",
+  JavaScript: "#f1e05a",
+  Python: "#3572A5",
+  Haskell: "#5e5086",
+  Rust: "#dea584",
+  Go: "#00ADD8",
+  Java: "#b07219",
+  C: "#555555",
+  "C++": "#f34b7d",
+  "C#": "#178600",
+  Ruby: "#701516",
+  Swift: "#F05138",
+  Kotlin: "#A97BFF",
+  Dart: "#00B4AB",
+  Shell: "#89e051",
+  HTML: "#e34c26",
+  CSS: "#563d7c",
+  Nix: "#7e7eff",
+  Plutus: "#8b4cad",
+};
+
 function formatSource(source: TimelineResponse["source"]): string {
   if (source === "database") {
     return "Cached + Overrides";
@@ -52,7 +74,15 @@ function ProjectCard({ project, index }: { project: TimelineProject; index: numb
         <div className="timeline-title-row">
           <h3>{project.repoName}</h3>
           <div className="timeline-badges">
-            {project.language ? <span className="timeline-chip">{project.language}</span> : null}
+            {project.language ? (
+              <span className="timeline-chip">
+                <span
+                  className="lang-dot"
+                  style={{ background: languageColors[project.language] ?? "var(--ink-2)" }}
+                />
+                {project.language}
+              </span>
+            ) : null}
             {project.label ? <span className="timeline-chip timeline-chip-accent">{project.label}</span> : null}
           </div>
         </div>
@@ -69,7 +99,7 @@ function ProjectCard({ project, index }: { project: TimelineProject; index: numb
           <Clock className="icon-sm" />
           Updated {formatProjectDate(pushed)}
         </li>
-        <li>
+        <li className={project.stars > 0 ? "timeline-fact-starred" : undefined}>
           <Star className="icon-sm" />
           {project.stars} star{project.stars === 1 ? "" : "s"}
         </li>

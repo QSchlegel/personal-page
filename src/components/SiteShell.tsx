@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
+import { Github, Mail } from "lucide-react";
+
 import { FloatingAuthChat } from "@/components/FloatingAuthChat";
 import { QSLogo } from "@/components/QSLogo";
 import { ThreeBackground } from "@/components/ThreeBackground";
@@ -48,6 +50,20 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
 
         <div className="site-content">{children}</div>
       </main>
+
+      <footer className="site-footer">
+        <span>&copy; {new Date().getFullYear()} {siteConfig.name}</span>
+        <nav className="contact-actions">
+          <a href={siteConfig.contact.github} target="_blank" rel="noreferrer">
+            <Github className="icon-sm" />
+            GitHub
+          </a>
+          <a href={`mailto:${siteConfig.contact.email}`}>
+            <Mail className="icon-sm" />
+            Email
+          </a>
+        </nav>
+      </footer>
 
       <FloatingAuthChat />
     </div>
