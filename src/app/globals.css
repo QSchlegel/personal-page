@@ -1,7 +1,7 @@
 :root {
   --font-display: "Archivo", "Helvetica Neue", "Segoe UI", sans-serif;
   --font-mono: "DM Mono", "SF Mono", "Cascadia Code", monospace;
-  --font-serif: "Lora", "PT Serif", Georgia, "Times New Roman", serif;
+  --font-serif: "Lora", "PT Serif", "Georgia", "Times New Roman", serif;
 
   /* warm cream paper */
   --bg-0: #faf7ef;
@@ -79,11 +79,6 @@ textarea {
 
 button:disabled {
   cursor: wait;
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent-2);
-  outline-offset: 2px;
 }
 
 .icon-sm {
@@ -821,6 +816,20 @@ p {
   color: var(--ink-2);
   text-transform: uppercase;
   transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.lang-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.timeline-fact-starred {
+  color: #c79a3e;
 }
 
 .timeline-chip-accent {

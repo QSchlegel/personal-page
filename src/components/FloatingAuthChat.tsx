@@ -10,8 +10,6 @@ import {
   ensureSessionForPasskey,
   hasLocalPasskeySupport,
   hasPasskeySupport,
-  hasRegisteredPasskeyHint,
-  markPasskeyRegistered,
   signInPasskeyOnThisDevice,
 } from "@/lib/passkey";
 
@@ -77,7 +75,6 @@ export function FloatingAuthChat() {
     try {
       const result = await signInPasskeyOnThisDevice();
       if (!result.error) {
-        markPasskeyRegistered();
         openChat();
         return;
       }
@@ -113,7 +110,6 @@ export function FloatingAuthChat() {
 
       const registration = await registerPasskey();
       if (registration.ok) {
-        markPasskeyRegistered();
         openChat("Passkey registered. Secure chat unlocked.");
       } else {
         setStatus(registration.message ?? "Passkey registration failed.");
@@ -149,15 +145,12 @@ export function FloatingAuthChat() {
       return;
     }
 
-    // Returning visitor on this browser → try a silent passkey sign-in first.
-    if (hasRegisteredPasskeyHint()) {
-      await onSignInPasskey();
-      return;
-    }
-
-    // First visit on this browser → offer to register.
-    setStatus("Set up a passkey to open a private, authenticated chat.");
-    setStep("choose");
+    // Always attempt a discoverable passkey sign-in first so returning users —
+    // including those with a synced passkey on a new browser, cleared storage,
+    // or private mode — recover their existing chat instead of being pushed into
+    // a fresh account. On failure, onSignInPasskey falls through to the
+    // register/sign-in choice.
+    await onSignInPasskey();
   }, [step, isPending, isSignedIn, onSignInPasskey]);
 
   const onCancel = useCallback(() => {
@@ -179,12 +172,10 @@ export function FloatingAuthChat() {
               <KeyRound className="icon-sm" />
               Register Passkey
             </button>
-            {hasRegisteredPasskeyHint() ? (
-              <button type="button" className="floating-chat-trigger" onClick={onSignInPasskey}>
-                <Fingerprint className="icon-sm" />
-                Sign In
-              </button>
-            ) : null}
+            <button type="button" className="floating-chat-trigger" onClick={onSignInPasskey}>
+              <Fingerprint className="icon-sm" />
+              Sign In
+            </button>
             <button
               type="button"
               className="floating-chat-trigger floating-chat-ghost"

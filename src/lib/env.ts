@@ -133,7 +133,10 @@ export function getAuthOrigins(): string[] {
     origins.add(railway);
   }
 
-  origins.add("http://localhost:3000");
-  origins.add("http://127.0.0.1:3000");
+  // Only trust localhost in development — never widen the origin surface in prod.
+  if (env.NODE_ENV !== "production") {
+    origins.add("http://localhost:3000");
+    origins.add("http://127.0.0.1:3000");
+  }
   return [...origins];
 }

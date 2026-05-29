@@ -5,28 +5,6 @@ import { authClient } from "@/lib/auth-client";
 type PasskeySignInResult = Awaited<ReturnType<typeof authClient.signIn.passkey>>;
 
 const INTERNAL_TRANSPORT = "internal";
-const REGISTERED_FLAG = "qs-passkey-registered";
-
-/**
- * Remember (per browser) that a passkey was registered here, so on return we
- * attempt a silent sign-in instead of pushing the user back into registration
- * — which previously created a fresh throwaway account on every visit.
- */
-export function markPasskeyRegistered(): void {
-  try {
-    window.localStorage.setItem(REGISTERED_FLAG, "1");
-  } catch {
-    // storage blocked (private mode) — non-fatal, sign-in still works
-  }
-}
-
-export function hasRegisteredPasskeyHint(): boolean {
-  try {
-    return window.localStorage.getItem(REGISTERED_FLAG) === "1";
-  } catch {
-    return false;
-  }
-}
 
 export function hasPasskeySupport() {
   return typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
