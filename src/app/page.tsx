@@ -1,19 +1,46 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { ArrowRight, Github, Mail, MessageSquare } from "lucide-react";
+import { ArrowRight, Github, Linkedin, Mail, MessageSquare } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
-import { CardCanvas } from "@/components/CardCanvas";
-import { DeploymentScene } from "@/components/DeploymentScene";
 import { GitHubStatsSection } from "@/components/GitHubStatsSection";
+import { SectionHeader } from "@/components/SectionHeader";
 import { TimelineSection } from "@/components/TimelineSection";
+import { XIcon } from "@/components/XIcon";
 import { siteConfig } from "@/config/site";
-import { cardReveal, fadeInScale, sectionReveal, springSoft, springSnappy, staggerContainer } from "@/lib/motion";
+import { cardReveal, sectionReveal, springSnappy, springSoft, staggerContainer } from "@/lib/motion";
 
 export default function HomePage() {
   const reduceMotion = useReducedMotion();
+  // gold sheen that sweeps around the portrait as the page scrolls.
+  // Driven via a direct style write (not a MotionValue) so it updates on the
+  // scroll event itself, independent of any rAF/visibility throttling.
+  const reflectionRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = reflectionRef.current;
+    if (!el) {
+      return;
+    }
+    if (reduceMotion) {
+      el.style.transform = "rotate(0deg)";
+      return;
+    }
+    const update = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = max > 0 ? window.scrollY / max : 0;
+      el.style.transform = `rotate(${progress * 540}deg)`;
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [reduceMotion]);
 
   return (
     <div className="home-main">
@@ -24,12 +51,34 @@ export default function HomePage() {
         viewport={{ once: true, amount: 0.3 }}
         variants={sectionReveal}
       >
-        <CardCanvas variant="icosahedron" />
         <div className="hero-grid">
+          <motion.figure
+            className="hero-photo-wrap"
+            initial={false}
+            whileInView={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
+            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Image
+              src="/profile.jpg"
+              alt={`${siteConfig.name} profile portrait`}
+              width={800}
+              height={800}
+              priority
+              className="hero-photo"
+            />
+            <span ref={reflectionRef} className="hero-photo-reflection" aria-hidden="true" />
+          </motion.figure>
+
           <div className="hero-copy">
             <p className="eyebrow">{siteConfig.heroEyebrow}</p>
-            <h1>{siteConfig.heroTitle}</h1>
-            <p className="hero-lead">{siteConfig.heroDescription}</p>
+            <h1>{siteConfig.name}</h1>
+            <p className="hero-lead">
+              I turn complex systems into{" "}
+              <em className="lead-accent">products people actually enjoy using</em>.
+            </p>
+            <p className="hero-sub">{siteConfig.heroDescription}</p>
 
             <motion.div
               className="hero-actions"
@@ -38,15 +87,21 @@ export default function HomePage() {
               whileInView={reduceMotion ? undefined : "visible"}
               viewport={{ once: true, amount: 0.45 }}
             >
-              <motion.a variants={cardReveal} custom={0} href="#timeline" whileHover={{ y: -2 }} transition={springSoft}>
+              <motion.a
+                variants={cardReveal}
+                custom={0}
+                href="#timeline"
+                whileHover={reduceMotion ? undefined : { y: -2 }}
+                transition={springSoft}
+              >
                 <ArrowRight className="icon-sm" />
-                Explore Projects
+                Explore Work
               </motion.a>
               <motion.div variants={cardReveal} custom={1} whileHover={reduceMotion ? undefined : { y: -2 }} transition={springSoft}>
-                <Link href="/comms">
+                <a href="#contact">
                   <MessageSquare className="icon-sm" />
-                  Start Secure Chat
-                </Link>
+                  Get in Touch
+                </a>
               </motion.div>
             </motion.div>
 
@@ -64,24 +119,6 @@ export default function HomePage() {
               ))}
             </motion.ul>
           </div>
-
-          <motion.figure
-            className="hero-photo-wrap"
-            initial={false}
-            whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, scale: 1 }}
-            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.75 }}
-          >
-            <Image
-              src="/profile.jpg"
-              alt={`${siteConfig.name} profile portrait`}
-              width={1080}
-              height={1350}
-              priority
-              className="hero-photo"
-            />
-          </motion.figure>
         </div>
       </motion.section>
 
@@ -93,13 +130,12 @@ export default function HomePage() {
         viewport={{ once: true, amount: 0.2 }}
         variants={sectionReveal}
       >
-        <CardCanvas variant="octahedron" />
-        <div className="section-heading">
-          <h2>How I Work</h2>
-          <p>{siteConfig.about}</p>
-        </div>
-
-        <DeploymentScene />
+        <SectionHeader index="01" eyebrow="Approach" title="How I Work">
+          <p>
+            I focus on <em className="lead-accent">clarity, speed, and trust</em>. The goal is simple: make powerful systems feel
+            understandable, safe, and effortless to use.
+          </p>
+        </SectionHeader>
 
         <motion.div
           className="about-grid"
@@ -136,7 +172,7 @@ export default function HomePage() {
               key={skill}
               variants={cardReveal}
               custom={index}
-              whileHover={reduceMotion ? undefined : { y: -2, scale: 1.05 }}
+              whileHover={reduceMotion ? undefined : { y: -2 }}
               transition={springSnappy}
             >
               {skill}
@@ -157,11 +193,9 @@ export default function HomePage() {
         viewport={{ once: true, amount: 0.2 }}
         variants={sectionReveal}
       >
-        <CardCanvas variant="torus" />
-        <div className="section-heading">
-          <h2>Let&apos;s Build</h2>
+        <SectionHeader index="04" eyebrow="Contact" title="Let&apos;s Build">
           <p>Open a secure thread or reach out directly to collaborate on product and platform work.</p>
-        </div>
+        </SectionHeader>
 
         <motion.div
           className="contact-actions"
@@ -170,28 +204,28 @@ export default function HomePage() {
           whileInView={reduceMotion ? undefined : "visible"}
           viewport={{ once: true, amount: 0.35 }}
         >
-          <motion.div variants={cardReveal} custom={0} whileHover={reduceMotion ? undefined : { y: -3, scale: 1.02 }} transition={springSoft}>
-            <Link href="/comms">
-              <MessageSquare className="icon-sm" />
-              Open Secure Chat
-            </Link>
-          </motion.div>
-          <motion.div variants={cardReveal} custom={1} whileHover={reduceMotion ? undefined : { y: -3, scale: 1.02 }} transition={springSoft}>
-            <a href={siteConfig.contact.twitter} target="_blank" rel="noreferrer">
-              <span className="icon-x">X</span>
-              X / Updates
+          <motion.div variants={cardReveal} custom={0} whileHover={reduceMotion ? undefined : { y: -3 }} transition={springSoft}>
+            <a href={`mailto:${siteConfig.contact.email}`}>
+              <Mail className="icon-sm" />
+              Email Direct
             </a>
           </motion.div>
-          <motion.div variants={cardReveal} custom={2} whileHover={reduceMotion ? undefined : { y: -3, scale: 1.02 }} transition={springSoft}>
+          <motion.div variants={cardReveal} custom={1} whileHover={reduceMotion ? undefined : { y: -3 }} transition={springSoft}>
             <a href={siteConfig.contact.github} target="_blank" rel="noreferrer">
               <Github className="icon-sm" />
               GitHub Repos
             </a>
           </motion.div>
-          <motion.div variants={cardReveal} custom={3} whileHover={reduceMotion ? undefined : { y: -3, scale: 1.02 }} transition={springSoft}>
-            <a href={`mailto:${siteConfig.contact.email}`}>
-              <Mail className="icon-sm" />
-              Email Direct
+          <motion.div variants={cardReveal} custom={2} whileHover={reduceMotion ? undefined : { y: -3 }} transition={springSoft}>
+            <a href={siteConfig.contact.linkedin} target="_blank" rel="noreferrer">
+              <Linkedin className="icon-sm" />
+              LinkedIn
+            </a>
+          </motion.div>
+          <motion.div variants={cardReveal} custom={3} whileHover={reduceMotion ? undefined : { y: -3 }} transition={springSoft}>
+            <a href={siteConfig.contact.twitter} target="_blank" rel="noreferrer">
+              <XIcon className="icon-sm" />
+              X / Updates
             </a>
           </motion.div>
         </motion.div>

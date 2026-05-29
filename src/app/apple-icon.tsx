@@ -17,16 +17,15 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          borderRadius: "42px",
-          background: "#071127",
-          color: "#5EC4FF",
-          fontSize: 88,
-          fontWeight: 700,
-          letterSpacing: "0.02em",
-          fontFamily: "Arial Black, Helvetica Neue, sans-serif",
+          background: "#1c2a3a",
+          fontSize: 104,
+          fontWeight: 800,
+          letterSpacing: "-6px",
+          fontFamily: "'Arial Black', 'Helvetica Neue', Arial, sans-serif",
         }}
       >
-        QS
+        <span style={{ color: "#f5efe4" }}>Q</span>
+        <span style={{ color: "#e0763f" }}>S</span>
       </div>
     ),
     size,

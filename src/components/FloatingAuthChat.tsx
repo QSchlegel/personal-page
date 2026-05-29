@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Fingerprint, KeyRound, LoaderCircle, Minimize2 } from "lucide-react";
+import { Fingerprint, KeyRound, LoaderCircle, Minimize2, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { CommsWorkspace } from "@/components/CommsWorkspace";
@@ -10,6 +10,8 @@ import {
   ensureSessionForPasskey,
   hasLocalPasskeySupport,
   hasPasskeySupport,
+  hasRegisteredPasskeyHint,
+  markPasskeyRegistered,
   signInPasskeyOnThisDevice,
 } from "@/lib/passkey";
 
@@ -63,6 +65,66 @@ export function FloatingAuthChat() {
     };
   }, []);
 
+  const openChat = useCallback((message: string | null = null) => {
+    setIsChatOpen(true);
+    setStatus(message);
+    setStep("idle");
+  }, []);
+
+  const onSignInPasskey = useCallback(async () => {
+    setStep("busy");
+    setStatus(null);
+    try {
+      const result = await signInPasskeyOnThisDevice();
+      if (!result.error) {
+        markPasskeyRegistered();
+        openChat();
+        return;
+      }
+      setStatus(toErrorMessage(result.error, "Couldn't sign in with that passkey. Register one to continue."));
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Passkey sign-in failed.");
+    }
+    setStep("choose");
+  }, [openChat]);
+
+  const onRegisterPasskey = useCallback(async () => {
+    setStep("busy");
+    setStatus(null);
+
+    try {
+      const hasLocal = await hasLocalPasskeySupport();
+      if (!hasLocal) {
+        setStatus("This device has no built-in passkey (Face ID, Touch ID, or Windows Hello). Try a device that supports it.");
+        setStep("choose");
+        return;
+      }
+
+      // Ensure a session exists (creates a lightweight account if needed).
+      if (!isSignedIn) {
+        setStatus("Setting up secure access…");
+        const session = await ensureSessionForPasskey();
+        if (!session.ok) {
+          setStatus(session.error ?? "Could not set up secure access.");
+          setStep("choose");
+          return;
+        }
+      }
+
+      const registration = await registerPasskey();
+      if (registration.ok) {
+        markPasskeyRegistered();
+        openChat("Passkey registered. Secure chat unlocked.");
+      } else {
+        setStatus(registration.message ?? "Passkey registration failed.");
+        setStep("choose");
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Registration failed.");
+      setStep("choose");
+    }
+  }, [isSignedIn, registerPasskey, openChat]);
+
   const onLaunchSecureChat = useCallback(async () => {
     if (step !== "idle" || isPending) {
       return;
@@ -71,15 +133,7 @@ export function FloatingAuthChat() {
     setStatus(null);
 
     if (!hasPasskeySupport()) {
-      setStatus("Passkeys are not supported on this browser/device.");
-      return;
-    }
-
-    const hasLocal = await hasLocalPasskeySupport();
-
-    if (!hasLocal) {
-      setStatus("No local passkey authenticator found.");
-      setStep("choose");
+      setStatus("Passkeys aren't supported on this browser. Try a recent Safari, Chrome, or Edge.");
       return;
     }
 
@@ -88,60 +142,28 @@ export function FloatingAuthChat() {
       return;
     }
 
-    setStep("busy");
-
-    try {
-      const passkeySignIn = await signInPasskeyOnThisDevice();
-
-      if (!passkeySignIn.error) {
-        setIsChatOpen(true);
-        setStatus("Secure chat unlocked.");
-        setStep("idle");
-        return;
-      }
-    } catch {
-      // local passkey sign-in failed, fall through to registration
+    const hasLocal = await hasLocalPasskeySupport();
+    if (!hasLocal) {
+      setStatus("This device has no built-in passkey (Face ID, Touch ID, or Windows Hello).");
+      setStep("choose");
+      return;
     }
 
-    setStatus("No local passkey found. Register one to continue.");
+    // Returning visitor on this browser → try a silent passkey sign-in first.
+    if (hasRegisteredPasskeyHint()) {
+      await onSignInPasskey();
+      return;
+    }
+
+    // First visit on this browser → offer to register.
+    setStatus("Set up a passkey to open a private, authenticated chat.");
     setStep("choose");
-  }, [step, isPending, isSignedIn]);
+  }, [step, isPending, isSignedIn, onSignInPasskey]);
 
-  const onRegisterPasskey = useCallback(async () => {
-    setStep("busy");
+  const onCancel = useCallback(() => {
+    setStep("idle");
     setStatus(null);
-
-    try {
-      const hasLocal = await hasLocalPasskeySupport();
-
-      if (!hasLocal) {
-        setStatus("No on-device authenticator available. Use a device with biometric or PIN support.");
-        return;
-      }
-
-      // Ensure we have a session (creates bootstrap user if needed)
-      if (!isSignedIn) {
-        setStatus("Setting up secure access...");
-        const session = await ensureSessionForPasskey();
-        if (!session.ok) {
-          setStatus(session.error ?? "Could not set up secure access.");
-          return;
-        }
-      }
-
-      const registration = await registerPasskey();
-      if (registration.ok) {
-        setIsChatOpen(true);
-        setStatus("Passkey registered. Secure chat unlocked.");
-      } else {
-        setStatus(registration.message ?? "Passkey registration failed.");
-      }
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Registration failed.");
-    } finally {
-      setStep("idle");
-    }
-  }, [isSignedIn, registerPasskey]);
+  }, []);
 
   return (
     <>
@@ -155,7 +177,21 @@ export function FloatingAuthChat() {
           <div className="floating-chat-choices">
             <button type="button" className="floating-chat-trigger" onClick={onRegisterPasskey}>
               <KeyRound className="icon-sm" />
-              Register New Passkey
+              Register Passkey
+            </button>
+            {hasRegisteredPasskeyHint() ? (
+              <button type="button" className="floating-chat-trigger" onClick={onSignInPasskey}>
+                <Fingerprint className="icon-sm" />
+                Sign In
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="floating-chat-trigger floating-chat-ghost"
+              onClick={onCancel}
+              aria-label="Cancel passkey setup"
+            >
+              <X className="icon-sm" />
             </button>
           </div>
         ) : (

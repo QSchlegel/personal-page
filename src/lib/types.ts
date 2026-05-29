@@ -14,6 +14,8 @@ export interface TimelineProject {
   iframeUrl: string | null;
   isFeatured: boolean;
   featuredOrder: number | null;
+  /** Still actively worked on — render the timeline bar as continuing to "now". */
+  ongoing?: boolean;
 }
 
 export interface TimelineOverride {
