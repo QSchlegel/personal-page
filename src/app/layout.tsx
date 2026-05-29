@@ -1,27 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Manrope, Sora } from "next/font/google";
+import { Archivo, DM_Mono, Lora } from "next/font/google";
 
 import { SiteShell } from "@/components/SiteShell";
 import { siteConfig } from "@/config/site";
 
 import "./globals.css";
 
-const uiFont = Manrope({
-  variable: "--font-ui",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const displayFont = Sora({
+// Fonts matched to the print CV: Archivo (display), Lora (serif body), DM Mono (labels).
+const displayFont = Archivo({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["500", "600", "700", "800"],
+  display: "swap",
 });
 
-const monoFont = JetBrains_Mono({
+const monoFont = DM_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
+
+const serifFont = Lora({
+  variable: "--font-serif",
+  subsets: ["latin"],
   weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -68,7 +73,7 @@ export default function RootLayout({
           data-website-id="a7b0e8f0-cf49-4cf7-a0e3-5b0b7137aa3b"
         />
       </head>
-      <body className={`${uiFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
+      <body className={`${displayFont.variable} ${monoFont.variable} ${serifFont.variable}`}>
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

@@ -32,18 +32,20 @@ export async function hasLocalPasskeySupport() {
 
 /**
  * Restrict WebAuthn options to platform-only (internal) transport.
- * Returns null when there are no credentials to authenticate against,
- * so the caller can skip the WebAuthn modal entirely and fall through
- * to registration.
+ *
+ * When the server returns no allowCredentials (the usernameless / discoverable
+ * flow — there's no session yet, so it can't scope to a user) we leave them
+ * empty and let the platform offer whatever resident passkeys it has, including
+ * synced ones. Previously this returned null and bailed, which broke sign-in for
+ * users who had already registered.
  */
 function toPlatformOnly(
   optionsJSON: PublicKeyCredentialRequestOptionsJSON,
-): PublicKeyCredentialRequestOptionsJSON | null {
+): PublicKeyCredentialRequestOptionsJSON {
   const allowCredentials = optionsJSON.allowCredentials;
 
-  // No credentials registered — nothing to authenticate against.
   if (!allowCredentials?.length) {
-    return null;
+    return optionsJSON;
   }
 
   // Force every credential to internal transport only.
@@ -107,10 +109,6 @@ export async function signInPasskeyOnThisDevice(): Promise<PasskeySignInResult> 
   }
 
   const platformOptions = toPlatformOnly(optionsResponse.data);
-
-  if (!platformOptions) {
-    return toPasskeyError("No passkeys registered on this device.", "NO_CREDENTIALS");
-  }
 
   try {
     const response = await startAuthentication({

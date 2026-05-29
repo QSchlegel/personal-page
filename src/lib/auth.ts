@@ -3,7 +3,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
-import { env, getAuthOrigins, getRpIdFromUrl } from "@/lib/env";
+import { env, getAuthOrigins, getCanonicalAuthUrl, getRpId } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 export const auth = betterAuth({
@@ -13,14 +13,17 @@ export const auth = betterAuth({
     transaction: true,
   }),
   secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL,
+  baseURL: getCanonicalAuthUrl(),
   trustedOrigins: getAuthOrigins(),
   emailAndPassword: { enabled: true },
   plugins: [
     nextCookies(),
     passkey({
       rpName: "QS Portfolio",
-      rpID: getRpIdFromUrl(env.BETTER_AUTH_URL),
+      // rpID + origin both derive from the canonical public URL so registration
+      // succeeds in production (the browser rejects an rpID that doesn't match
+      // the page's domain — the original cause of broken passkey registration).
+      rpID: getRpId(),
       origin: getAuthOrigins(),
     }),
   ],

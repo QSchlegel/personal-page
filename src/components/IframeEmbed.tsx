@@ -12,11 +12,17 @@ export function IframeEmbed({ src, title }: IframeEmbedProps) {
   const [loaded, setLoaded] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [prevAttempt, setPrevAttempt] = useState(attempt);
 
-  useEffect(() => {
+  // Reset load state when a retry starts — adjusted during render rather than in
+  // an effect to avoid a synchronous setState cascade.
+  if (attempt !== prevAttempt) {
+    setPrevAttempt(attempt);
     setLoaded(false);
     setTimedOut(false);
+  }
 
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       setTimedOut(true);
     }, 4500);
