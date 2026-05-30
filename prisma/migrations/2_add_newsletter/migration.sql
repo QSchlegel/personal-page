@@ -1,11 +1,26 @@
--- CreateEnum
-CREATE TYPE "public"."SubscriberStatus" AS ENUM ('PENDING', 'CONFIRMED', 'UNSUBSCRIBED');
+-- Idempotent migration: every statement guards against a partial-apply on
+-- environments that have drifted from 0_init (production was created from an
+-- earlier baseline that's missing some 0_init-era objects, including the
+-- DeliveryStatus enum this migration references).
+
+-- CreateEnum: DeliveryStatus is declared in 0_init but missing on drifted
+-- environments. Recreate-if-missing so this migration can reference it.
+DO $$ BEGIN
+    CREATE TYPE "public"."DeliveryStatus" AS ENUM ('SUCCESS', 'FAILED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateEnum
-CREATE TYPE "public"."BroadcastStatus" AS ENUM ('DRAFT', 'SENDING', 'SENT', 'FAILED');
+DO $$ BEGIN
+    CREATE TYPE "public"."SubscriberStatus" AS ENUM ('PENDING', 'CONFIRMED', 'UNSUBSCRIBED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- CreateEnum
+DO $$ BEGIN
+    CREATE TYPE "public"."BroadcastStatus" AS ENUM ('DRAFT', 'SENDING', 'SENT', 'FAILED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- CreateTable
-CREATE TABLE "public"."Subscriber" (
+CREATE TABLE IF NOT EXISTS "public"."Subscriber" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
@@ -25,7 +40,7 @@ CREATE TABLE "public"."Subscriber" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."DownloadLead" (
+CREATE TABLE IF NOT EXISTS "public"."DownloadLead" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -39,7 +54,7 @@ CREATE TABLE "public"."DownloadLead" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."NewsletterBroadcast" (
+CREATE TABLE IF NOT EXISTS "public"."NewsletterBroadcast" (
     "id" TEXT NOT NULL,
     "subject" TEXT NOT NULL,
     "bodyMarkdown" TEXT NOT NULL,
@@ -56,7 +71,7 @@ CREATE TABLE "public"."NewsletterBroadcast" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."NewsletterSend" (
+CREATE TABLE IF NOT EXISTS "public"."NewsletterSend" (
     "id" TEXT NOT NULL,
     "broadcastId" TEXT NOT NULL,
     "subscriberId" TEXT NOT NULL,
@@ -69,40 +84,44 @@ CREATE TABLE "public"."NewsletterSend" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Subscriber_email_key" ON "public"."Subscriber"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "Subscriber_email_key" ON "public"."Subscriber"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Subscriber_confirmToken_key" ON "public"."Subscriber"("confirmToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "Subscriber_confirmToken_key" ON "public"."Subscriber"("confirmToken");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Subscriber_unsubscribeToken_key" ON "public"."Subscriber"("unsubscribeToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "Subscriber_unsubscribeToken_key" ON "public"."Subscriber"("unsubscribeToken");
 
 -- CreateIndex
-CREATE INDEX "Subscriber_status_idx" ON "public"."Subscriber"("status");
+CREATE INDEX IF NOT EXISTS "Subscriber_status_idx" ON "public"."Subscriber"("status");
 
 -- CreateIndex
-CREATE INDEX "DownloadLead_email_idx" ON "public"."DownloadLead"("email");
+CREATE INDEX IF NOT EXISTS "DownloadLead_email_idx" ON "public"."DownloadLead"("email");
 
 -- CreateIndex
-CREATE INDEX "DownloadLead_slug_idx" ON "public"."DownloadLead"("slug");
+CREATE INDEX IF NOT EXISTS "DownloadLead_slug_idx" ON "public"."DownloadLead"("slug");
 
 -- CreateIndex
-CREATE INDEX "NewsletterBroadcast_status_idx" ON "public"."NewsletterBroadcast"("status");
+CREATE INDEX IF NOT EXISTS "NewsletterBroadcast_status_idx" ON "public"."NewsletterBroadcast"("status");
 
 -- CreateIndex
-CREATE INDEX "NewsletterBroadcast_createdAt_idx" ON "public"."NewsletterBroadcast"("createdAt");
+CREATE INDEX IF NOT EXISTS "NewsletterBroadcast_createdAt_idx" ON "public"."NewsletterBroadcast"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "NewsletterSend_broadcastId_idx" ON "public"."NewsletterSend"("broadcastId");
+CREATE INDEX IF NOT EXISTS "NewsletterSend_broadcastId_idx" ON "public"."NewsletterSend"("broadcastId");
 
 -- CreateIndex
-CREATE INDEX "NewsletterSend_subscriberId_idx" ON "public"."NewsletterSend"("subscriberId");
+CREATE INDEX IF NOT EXISTS "NewsletterSend_subscriberId_idx" ON "public"."NewsletterSend"("subscriberId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "NewsletterSend_broadcastId_subscriberId_key" ON "public"."NewsletterSend"("broadcastId", "subscriberId");
+CREATE UNIQUE INDEX IF NOT EXISTS "NewsletterSend_broadcastId_subscriberId_key" ON "public"."NewsletterSend"("broadcastId", "subscriberId");
+
+-- AddForeignKey (ALTER TABLE ADD CONSTRAINT has no IF NOT EXISTS; guard with DO block.)
+DO $$ BEGIN
+    ALTER TABLE "public"."NewsletterSend" ADD CONSTRAINT "NewsletterSend_broadcastId_fkey" FOREIGN KEY ("broadcastId") REFERENCES "public"."NewsletterBroadcast"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "public"."NewsletterSend" ADD CONSTRAINT "NewsletterSend_broadcastId_fkey" FOREIGN KEY ("broadcastId") REFERENCES "public"."NewsletterBroadcast"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."NewsletterSend" ADD CONSTRAINT "NewsletterSend_subscriberId_fkey" FOREIGN KEY ("subscriberId") REFERENCES "public"."Subscriber"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "public"."NewsletterSend" ADD CONSTRAINT "NewsletterSend_subscriberId_fkey" FOREIGN KEY ("subscriberId") REFERENCES "public"."Subscriber"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
