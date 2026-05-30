@@ -23,6 +23,13 @@ const envSchema = z.object({
   PUBLIC_GITHUB_URL: z.string().url().default("https://github.com/QSchlegel"),
   PUBLIC_LINKEDIN_URL: z.string().url().default("https://www.linkedin.com/in/quirin-schlegel-7553ba197/"),
   PUBLIC_EMAIL: z.string().email().default("mail@quirinschlegel.com"),
+  // Email + newsletter (Resend). Optional so dev/build works without sending.
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default("Quirin Schlegel <hello@quirinschlegel.com>"),
+  NEWSLETTER_FROM: z.string().optional(),
+  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  DOWNLOAD_TOKEN_SECRET: z.string().optional(),
+  NEWSLETTER_CONSENT_VERSION: z.string().default("2026-05-30-v1"),
 });
 
 const parsed = envSchema.safeParse(process.env);

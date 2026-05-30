@@ -1,10 +1,18 @@
-import { startAuthentication, type PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
+import {
+  startAuthentication,
+  startRegistration,
+  WebAuthnError,
+  type PublicKeyCredentialCreationOptionsJSON,
+  type PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/browser";
 
 import { authClient } from "@/lib/auth-client";
 
 type PasskeySignInResult = Awaited<ReturnType<typeof authClient.signIn.passkey>>;
+type PasskeyRegisterResult = Awaited<ReturnType<typeof authClient.passkey.addPasskey>>;
 
 const INTERNAL_TRANSPORT = "internal";
+const PLATFORM_ATTACHMENT = "platform";
 
 export function hasPasskeySupport() {
   return typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
@@ -133,5 +141,82 @@ export async function signInPasskeyOnThisDevice(): Promise<PasskeySignInResult> 
       return toPasskeyError(error.message);
     }
     return toPasskeyError("Passkey sign-in failed.");
+  }
+}
+
+function toRegisterError(message: string, code = "AUTH_CANCELLED"): PasskeyRegisterResult {
+  return {
+    data: null,
+    error: {
+      code,
+      message,
+      status: 400,
+      statusText: "BAD_REQUEST",
+    },
+  } as PasskeyRegisterResult;
+}
+
+/**
+ * Register a passkey on the local (platform) authenticator only — Touch ID,
+ * Windows Hello, Android biometrics, etc. Mirrors signInPasskeyOnThisDevice:
+ * fetch the server-generated options, force "platform" attachment, run the
+ * registration ceremony, then verify. The server passkey() plugin already
+ * enforces platform attachment; doing it here too guarantees the constraint is
+ * present on the options the browser sees, so no QR / "use a phone" /
+ * security-key picker is offered.
+ */
+export async function registerPasskeyOnThisDevice(
+  name = "Portfolio Passkey",
+): Promise<PasskeyRegisterResult> {
+  const optionsResponse = await authClient.$fetch<PublicKeyCredentialCreationOptionsJSON>(
+    "/passkey/generate-register-options",
+    {
+      method: "GET",
+      query: { authenticatorAttachment: PLATFORM_ATTACHMENT, name },
+      throw: false,
+    },
+  );
+
+  if (!optionsResponse.data) {
+    return optionsResponse as PasskeyRegisterResult;
+  }
+
+  const optionsJSON: PublicKeyCredentialCreationOptionsJSON = {
+    ...optionsResponse.data,
+    authenticatorSelection: {
+      ...optionsResponse.data.authenticatorSelection,
+      authenticatorAttachment: PLATFORM_ATTACHMENT,
+    },
+  };
+
+  try {
+    const response = await startRegistration({ optionsJSON });
+
+    const verified = await authClient.$fetch<{ session: unknown; user: unknown }>("/passkey/verify-registration", {
+      method: "POST",
+      body: {
+        response,
+        name,
+      },
+      throw: false,
+    });
+
+    if (!verified.error) {
+      authClient.$store.notify("$sessionSignal");
+    }
+
+    return verified as PasskeyRegisterResult;
+  } catch (error) {
+    if (error instanceof WebAuthnError) {
+      const message =
+        error.code === "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED"
+          ? "previously registered"
+          : error.message;
+      return toRegisterError(message, error.code);
+    }
+    if (error instanceof Error) {
+      return toRegisterError(error.message);
+    }
+    return toRegisterError("Passkey registration failed.");
   }
 }

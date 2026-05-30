@@ -10,6 +10,7 @@ import {
   ensureSessionForPasskey,
   hasLocalPasskeySupport,
   hasPasskeySupport,
+  registerPasskeyOnThisDevice,
   signInPasskeyOnThisDevice,
 } from "@/lib/passkey";
 
@@ -38,10 +39,7 @@ export function FloatingAuthChat() {
   const isBusy = step === "busy";
 
   const registerPasskey = useCallback(async () => {
-    const result = await authClient.passkey.addPasskey({
-      name: "Portfolio Passkey",
-      authenticatorAttachment: "platform" as const,
-    });
+    const result = await registerPasskeyOnThisDevice("Portfolio Passkey");
 
     if (!result.error) {
       return { ok: true as const };

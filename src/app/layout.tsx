@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, DM_Mono, Lora } from "next/font/google";
+import { Archivo, DM_Mono, Fraunces, IBM_Plex_Mono, Lora, Spectral } from "next/font/google";
 
 import { SiteShell } from "@/components/SiteShell";
 import { siteConfig } from "@/config/site";
@@ -27,6 +27,27 @@ const serifFont = Lora({
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],
   display: "swap",
+});
+
+// Editorial faces for the knowledge-vault reading surface (mirrors the print PDF).
+const readingDisplayFont = Fraunces({
+  variable: "--font-reading-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
+
+const readingBodyFont = Spectral({
+  variable: "--font-reading-body",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
+
+const readingMonoFont = IBM_Plex_Mono({
+  variable: "--font-reading-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -73,7 +94,9 @@ export default function RootLayout({
           data-website-id="a7b0e8f0-cf49-4cf7-a0e3-5b0b7137aa3b"
         />
       </head>
-      <body className={`${displayFont.variable} ${monoFont.variable} ${serifFont.variable}`}>
+      <body
+        className={`${displayFont.variable} ${monoFont.variable} ${serifFont.variable} ${readingDisplayFont.variable} ${readingBodyFont.variable} ${readingMonoFont.variable}`}
+      >
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

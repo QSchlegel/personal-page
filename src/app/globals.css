@@ -1793,6 +1793,135 @@ p {
   }
 }
 
+/* ---------- newsletter admin ---------- */
+.admin-news {
+  display: grid;
+  gap: 18px;
+}
+
+.news-stats {
+  display: flex;
+  gap: 28px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.news-stats div {
+  display: flex;
+  flex-direction: column;
+}
+
+.news-stats strong {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  color: var(--accent-1);
+  line-height: 1.1;
+}
+
+.news-stats span {
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.news-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.news-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink-1);
+}
+
+.news-form input,
+.news-form select,
+.news-form textarea {
+  background: var(--panel-bg-strong);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  color: var(--ink-0);
+  padding: 10px 12px;
+  font-family: var(--font-serif);
+  resize: vertical;
+}
+
+.news-form input:focus,
+.news-form select:focus,
+.news-form textarea:focus {
+  outline: none;
+  border-color: var(--accent-2);
+}
+
+.news-preview {
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  background: var(--track);
+}
+
+.news-preview p {
+  margin: 0 0 8px;
+  color: var(--ink-1);
+  line-height: 1.5;
+}
+
+.news-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  cursor: pointer;
+  background: var(--accent-2);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 18px;
+  font-weight: 600;
+  font-family: var(--font-serif);
+}
+
+.news-send:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.news-hint {
+  font-size: 0.82rem;
+  color: var(--accent-3);
+}
+
+.news-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 10px;
+}
+
+.news-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.news-list strong {
+  color: var(--ink-0);
+}
+
+.news-list span {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-2);
+  text-transform: lowercase;
+}
 /* ── CV-style Gantt timeline (driven by live GitHub data) ── */
 .gantt {
   position: relative;

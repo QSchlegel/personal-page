@@ -25,6 +25,17 @@ export const auth = betterAuth({
       // the page's domain — the original cause of broken passkey registration).
       rpID: getRpId(),
       origin: getAuthOrigins(),
+      // Store passkeys on-device only. "platform" stops browsers from offering
+      // roaming authenticators (security keys / QR "use a phone" hybrid flow),
+      // and a required resident key makes it a real discoverable passkey.
+      // Enforced server-side so it applies to every registration path,
+      // independent of the client query param.
+      authenticatorSelection: {
+        authenticatorAttachment: "platform",
+        residentKey: "required",
+        requireResidentKey: true,
+        userVerification: "preferred",
+      },
     }),
   ],
 });

@@ -69,8 +69,11 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="site-nav-links" aria-label="Primary">
-            <a href="#timeline">Work</a>
-            <a href="#contact">Contact</a>
+            <Link href="/#timeline">Work</Link>
+            <Link href="/vault">Vault</Link>
+            <Link href="/blog">Six-Pagers</Link>
+            <Link href="/newsletter">Newsletter</Link>
+            <Link href="/#contact">Contact</Link>
           </nav>
         </div>
       </header>
@@ -127,6 +130,13 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             © {new Date().getFullYear()} {siteConfig.name} · Built in public
           </span>
         </div>
+        <nav className="site-footer-links" aria-label="Sections">
+          <Link href="/vault">Vault</Link>
+          <Link href="/blog">Six-Pagers</Link>
+          <Link href="/newsletter">Newsletter</Link>
+          <a href="/blog/rss.xml">RSS</a>
+          <Link href="/privacy">Privacy</Link>
+        </nav>
         <nav className="site-footer-links" aria-label="Elsewhere">
           <a href={siteConfig.contact.github} target="_blank" rel="noreferrer">
             GitHub

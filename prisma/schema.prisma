@@ -309,3 +309,95 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
 }
+
+enum SubscriberStatus {
+  PENDING
+  CONFIRMED
+  UNSUBSCRIBED
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
+}
+
+// DSGVO double opt-in newsletter subscriber. Consent (text + version + IP +
+// timestamp) is stored for accountability; an unsubscribe token allows
+// one-click removal without authentication.
+model Subscriber {
+  id               String           @id @default(cuid())
+  email            String           @unique
+  name             String?
+  status           SubscriberStatus @default(PENDING)
+  confirmToken     String?          @unique
+  confirmedAt      DateTime?
+  unsubscribeToken String           @unique
+  unsubscribedAt   DateTime?
+  consentText      String
+  consentVersion   String
+  source           String?
+  ipAddress        String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  sends NewsletterSend[]
+
+  @@index([status])
+}
+
+// A request to download a gated PDF. Lawful basis: delivering requested content
+// (transactional). Kept separate from Subscriber so the newsletter opt-in stays
+// decoupled (no coupling / Kopplungsverbot).
+model DownloadLead {
+  id              String    @id @default(cuid())
+  email           String
+  slug            String
+  ipAddress       String?
+  newsletterOptIn Boolean   @default(false)
+  consentAt       DateTime  @default(now())
+  downloadedAt    DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([email])
+  @@index([slug])
+}
+
+// A newsletter broadcast composed in the admin page and sent manually.
+model NewsletterBroadcast {
+  id              String          @id @default(cuid())
+  subject         String
+  bodyMarkdown    String
+  pagerSlug       String?
+  status          BroadcastStatus @default(DRAFT)
+  createdByUserId String?
+  createdByEmail  String?
+  recipientCount  Int?
+  sentAt          DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  sends NewsletterSend[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Per-recipient delivery record for a broadcast.
+model NewsletterSend {
+  id           String         @id @default(cuid())
+  broadcastId  String
+  subscriberId String
+  email        String
+  status       DeliveryStatus
+  error        String?
+  sentAt       DateTime       @default(now())
+
+  broadcast  NewsletterBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  subscriber Subscriber          @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@unique([broadcastId, subscriberId])
+  @@index([broadcastId])
+  @@index([subscriberId])
+}
