@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Menu, X } from "lucide-react";
 
 import { FloatingAuthChat } from "@/components/FloatingAuthChat";
 import { Wordmark } from "@/components/Wordmark";
@@ -17,6 +18,23 @@ function mastheadStamp(): string {
   return `Berlin · ${now.getFullYear()}.${month}`;
 }
 
+// Primary nav — used both inline (desktop) and inside the mobile drawer so the
+// two surfaces stay in lockstep.
+const PRIMARY_LINKS = [
+  { href: "/#timeline", label: "Work" },
+  { href: "/vault", label: "Vault" },
+  { href: "/blog", label: "Six-Pagers" },
+  { href: "/newsletter", label: "Newsletter" },
+  { href: "/#contact", label: "Contact" },
+] as const;
+
+// Secondary links shown only in the drawer (footer-style) so mobile users can
+// still get to legal + social without scrolling to the very bottom of the page.
+const DRAWER_SECONDARY = [
+  { href: "/blog/rss.xml", label: "RSS", external: false },
+  { href: "/privacy", label: "Privacy", external: false },
+] as const;
+
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
   const routeMeta = getRouteMeta(pathname);
@@ -24,6 +42,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
   // When the hero portrait scrolls up under the nav, dock a small avatar into
   // the header so the face keeps "watching" the reader as they scroll.
   const [docked, setDocked] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const reflectionRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -53,6 +72,25 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, reduceMotion]);
 
+  // While the drawer is open, lock body scroll + close on ESC.
+  // (Drawer link clicks call closeNav directly, so we don't need a
+  // separate "close on route change" effect.)
+  useEffect(() => {
+    if (!navOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [navOpen]);
+
+  const closeNav = useCallback(() => setNavOpen(false), []);
+
   return (
     <div className="page-shell">
       <header className="site-nav">
@@ -69,19 +107,94 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="site-nav-links" aria-label="Primary">
-            <Link href="/#timeline">Work</Link>
-            <Link href="/vault">Vault</Link>
-            <Link href="/blog">Six-Pagers</Link>
-            <Link href="/newsletter">Newsletter</Link>
-            <Link href="/#contact">Contact</Link>
+            {PRIMARY_LINKS.map((link) => (
+              <Link key={link.href} href={link.href}>
+                {link.label}
+              </Link>
+            ))}
           </nav>
+          <button
+            type="button"
+            className="site-nav-toggle"
+            onClick={() => setNavOpen((value) => !value)}
+            aria-expanded={navOpen}
+            aria-controls="site-nav-drawer"
+            aria-label={navOpen ? "Close navigation menu" : "Open navigation menu"}
+          >
+            {navOpen ? <X className="icon-sm" /> : <Menu className="icon-sm" />}
+          </button>
         </div>
       </header>
 
       <div className="masthead" aria-hidden="true">
-        <span>Curriculum Vitae · {siteConfig.name}</span>
+        <span className="masthead-prefix">Curriculum Vitae · {siteConfig.name}</span>
         <span suppressHydrationWarning>{mastheadStamp()}</span>
       </div>
+
+      <AnimatePresence>
+        {navOpen ? (
+          <motion.div
+            key="nav-overlay"
+            className="site-nav-overlay"
+            initial={false}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                closeNav();
+              }
+            }}
+          >
+            <motion.nav
+              id="site-nav-drawer"
+              className="site-nav-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Site navigation"
+              initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+              transition={{ duration: 0.24, ease: easingStandard }}
+            >
+              <ul className="site-nav-drawer-primary">
+                {PRIMARY_LINKS.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} onClick={closeNav}>
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <ul className="site-nav-drawer-secondary">
+                {DRAWER_SECONDARY.map((link) =>
+                  link.external ? (
+                    <li key={link.href}>
+                      <a href={link.href} target="_blank" rel="noreferrer">
+                        {link.label}
+                      </a>
+                    </li>
+                  ) : (
+                    <li key={link.href}>
+                      <Link href={link.href} onClick={closeNav}>
+                        {link.label}
+                      </Link>
+                    </li>
+                  ),
+                )}
+                <li>
+                  <a href={siteConfig.contact.github} target="_blank" rel="noreferrer">
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a href={`mailto:${siteConfig.contact.email}`}>Email</a>
+                </li>
+              </ul>
+            </motion.nav>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <main className="site-main">
         <AnimatePresence mode="wait" initial={false}>
