@@ -56,4 +56,13 @@ EXPOSE 3000
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy; node server.js"]
+# Migration startup:
+# - `resolve --rolled-back 2_add_newsletter` is a one-time cleanup for the
+#   prod database where this migration is currently stuck in FAILED state
+#   (it referenced the DeliveryStatus enum from 0_init, which had drifted
+#   off the prod schema). It harmlessly errors on every other env where the
+#   migration is not in failed state, hence `|| true`.
+# - `migrate deploy` then applies the (now idempotent) migrations in order.
+# - The server starts regardless of migration outcome so the runtime is
+#   self-recovering on flaky DB starts.
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate resolve --rolled-back 2_add_newsletter 2>/dev/null || true; node node_modules/prisma/build/index.js migrate deploy; node server.js"]
