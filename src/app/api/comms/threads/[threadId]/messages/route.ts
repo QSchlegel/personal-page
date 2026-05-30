@@ -4,7 +4,9 @@ import { z } from "zod";
 import { createThreadMessage } from "@/lib/comms";
 import { requireUser } from "@/lib/auth-helpers";
 import { jsonError, jsonOk } from "@/lib/http";
+import { isBootstrapEmail } from "@/lib/identity";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { getRequestIp } from "@/lib/security";
 import { writeAuditLog } from "@/lib/audit";
 
@@ -69,6 +71,21 @@ export async function POST(request: Request, context: RouteParams) {
   if (!userResult.ok) {
     return userResult.response;
   }
+
+  if (isBootstrapEmail(userResult.session.user.email)) {
+    return jsonError(
+      "EMAIL_NOT_ASSOCIATED",
+      "Please associate a real email with your passkey before sending messages.",
+      409,
+    );
+  }
+
+  const ip = getRequestIp(request.headers);
+  const rate = checkRateLimit(`comms:msg:${ip ?? userResult.session.user.id}`, 20, 60_000);
+  if (!rate.allowed) {
+    return jsonError("RATE_LIMITED", "Too many messages. Please slow down.", 429);
+  }
+  cleanupRateLimits();
 
   const { threadId } = await context.params;
 

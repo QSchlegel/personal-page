@@ -3,7 +3,9 @@ import { z } from "zod";
 import { ensurePrivateThread, createThreadMessage } from "@/lib/comms";
 import { requireUser } from "@/lib/auth-helpers";
 import { jsonError, jsonOk } from "@/lib/http";
+import { isBootstrapEmail } from "@/lib/identity";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { getRequestIp } from "@/lib/security";
 import { writeAuditLog } from "@/lib/audit";
 
@@ -90,6 +92,13 @@ export async function POST(request: Request) {
     return userResult.response;
   }
 
+  const ip = getRequestIp(request.headers);
+  const rate = checkRateLimit(`comms:thread:${ip ?? userResult.session.user.id}`, 10, 60_000);
+  if (!rate.allowed) {
+    return jsonError("RATE_LIMITED", "Too many threads created. Please slow down.", 429);
+  }
+  cleanupRateLimits();
+
   let body: z.infer<typeof createThreadSchema>;
   try {
     const json = await request.json();
@@ -103,6 +112,19 @@ export async function POST(request: Request) {
   }
 
   const currentUser = userResult.session.user;
+
+  // Defence in depth: a user who hasn't completed the associate-email step
+  // (still has the synthetic passkey-xxx@local.invalid address) can't be the
+  // recipient of replies, so block them from initiating threads too. The UI
+  // is supposed to prompt for association first; this catches the case where
+  // the client forgets.
+  if (isBootstrapEmail(currentUser.email)) {
+    return jsonError(
+      "EMAIL_NOT_ASSOCIATED",
+      "Please associate a real email with your passkey before starting a chat.",
+      409,
+    );
+  }
 
   const targetUser = body.targetUserId
     ? await prisma.user.findUnique({

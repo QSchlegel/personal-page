@@ -2162,3 +2162,91 @@ p {
     display: none;
   }
 }
+
+/* ---------- floating-chat email-association modal ---------- */
+.floating-chat-associate {
+  max-width: 520px;
+  padding: 2rem 1.6rem 1.4rem;
+}
+
+.floating-chat-associate .associate-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  margin: 0 0 0.4rem;
+  color: var(--ink-0);
+}
+
+.floating-chat-associate .associate-head p {
+  margin: 0 0 1.2rem;
+  color: var(--ink-1);
+  line-height: 1.55;
+}
+
+.floating-chat-associate .associate-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.floating-chat-associate .associate-form > label {
+  display: grid;
+  gap: 0.34rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.floating-chat-associate .associate-form input[type="email"] {
+  padding: 0.55rem 0.74rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-bg-strong);
+  color: var(--ink-0);
+  font: inherit;
+}
+
+.floating-chat-associate .associate-form input[type="email"]:focus-visible {
+  outline: none;
+  border-color: var(--accent-1);
+}
+
+.floating-chat-associate .associate-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  font-weight: 400;
+}
+
+.floating-chat-associate .associate-consent input {
+  margin-top: 0.18rem;
+}
+
+.floating-chat-associate .associate-consent a {
+  color: var(--accent-1);
+  text-decoration: underline;
+}
+
+.floating-chat-associate .associate-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* ---------- chat message states (optimistic + failed) ---------- */
+.message.pending {
+  opacity: 0.7;
+}
+
+.message.failed {
+  outline: 1px solid var(--danger);
+  outline-offset: 1px;
+}
+
+.message.failed > span {
+  color: var(--danger);
+}
