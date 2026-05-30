@@ -35,7 +35,7 @@ export default function VaultPage() {
 
   return (
     <>
-      <header className="index-head masthead">
+      <header className="index-head article-head">
         <p className="eyebrow">Knowledge Vault</p>
         <h1>The Vault</h1>
         <p className="subtitle">

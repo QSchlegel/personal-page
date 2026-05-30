@@ -77,7 +77,7 @@ export default async function ArticlePage({ params }: ArticleParams) {
 
   return (
     <article>
-      <header className="masthead">
+      <header className="article-head">
         <p className="eyebrow">Six-Pager · Knowledge Vault</p>
         <h1>{note.title}</h1>
         <p className="subtitle">{note.description}</p>

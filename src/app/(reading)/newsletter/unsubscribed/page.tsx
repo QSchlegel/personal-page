@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function NewsletterUnsubscribedPage() {
   return (
     <article>
-      <header className="masthead">
+      <header className="article-head">
         <p className="eyebrow">Newsletter</p>
         <h1>You&apos;ve been unsubscribed</h1>
         <p className="subtitle">You won&apos;t receive any more newsletter emails. No hard feelings.</p>
