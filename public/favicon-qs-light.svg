@@ -1,15 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="4" y="4" width="56" height="56" rx="14" fill="#EAF5FF" />
+  <circle cx="32" cy="32" r="30" fill="#1c2a3a" />
   <text
     x="50%"
-    y="50%"
+    y="54%"
     text-anchor="middle"
     dominant-baseline="middle"
-    font-size="28"
-    font-weight="700"
-    fill="#0B1F3A"
-    font-family="Arial Black, Helvetica Neue, sans-serif"
-  >
-    QS
-  </text>
+    font-size="30"
+    font-weight="800"
+    letter-spacing="-1.5"
+    font-family="Archivo, 'Arial Black', 'Helvetica Neue', Arial, sans-serif"
+  ><tspan fill="#f5efe4">Q</tspan><tspan fill="#e0763f">S</tspan></text>
 </svg>

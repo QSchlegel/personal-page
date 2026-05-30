@@ -26,6 +26,12 @@ const curatedSeed: Array<{
     iframeUrl: "https://www.script-explorer.com",
   },
   {
+    repoName: "Decentralized-Accounting",
+    featuredOrder: 8,
+    label: "Cardano R&D",
+    summary: "A balance-sheet-inspired accounting model implemented in Cardano smart contracts.",
+  },
+  {
     repoName: "drep.collective",
     featuredOrder: 3,
     label: "TBA",
@@ -91,6 +97,69 @@ const curatedSeed: Array<{
 ];
 
 const curatedMap = new Map(curatedSeed.map((entry) => [entry.repoName, entry]));
+
+/**
+ * Notable public projects that live outside the personal GitHub account (e.g.
+ * org repos) and therefore aren't returned by the per-user repo fetch. These are
+ * merged into every timeline response so flagship work still shows up.
+ */
+const manualProjects: TimelineProject[] = [
+  {
+    repoName: "MeshJS Multisig",
+    fullName: "MeshJS/multisig",
+    description: "Multi-signature treasury and governance platform for the Cardano blockchain.",
+    language: "TypeScript",
+    homepage: "https://multisig.meshjs.dev",
+    htmlUrl: "https://github.com/MeshJS/multisig",
+    createdAt: "2025-01-15T00:00:00.000Z",
+    updatedAt: "2025-12-15T00:00:00.000Z",
+    pushedAt: "2025-12-15T00:00:00.000Z",
+    stars: 0,
+    label: "Cardano",
+    summary:
+      "Open-source multi-signature treasury and governance platform for Cardano: shared wallet creation and multi-sig transaction orchestration. In production with ongoing contributions at multisig.meshjs.dev.",
+    iframeUrl: null,
+    isFeatured: true,
+    featuredOrder: 1,
+    ongoing: true,
+  },
+];
+
+/**
+ * Active-span corrections for projects whose GitHub repo dates don't reflect the
+ * real working period (e.g. research that predates the public repo).
+ */
+const spanOverrides: Record<string, { createdAt?: string; pushedAt?: string }> = {
+  "Decentralized-Accounting": {
+    createdAt: "2021-01-01T00:00:00.000Z",
+    pushedAt: "2023-10-01T00:00:00.000Z",
+  },
+};
+
+function applySpanOverride(project: TimelineProject): TimelineProject {
+  const span = spanOverrides[project.repoName];
+  if (!span) {
+    return project;
+  }
+  return {
+    ...project,
+    createdAt: span.createdAt ?? project.createdAt,
+    pushedAt: span.pushedAt ?? project.pushedAt,
+    updatedAt: span.pushedAt ?? project.updatedAt,
+  };
+}
+
+/** Merge the manual projects in, skipping any repo name already present. */
+function withManualProjects(projects: TimelineProject[]): TimelineProject[] {
+  const now = new Date().toISOString();
+  const present = new Set(projects.map((project) => project.repoName));
+  const extra = manualProjects
+    .filter((project) => !present.has(project.repoName))
+    // ongoing projects extend to "now" so their bar reaches the present
+    .map((project) => (project.ongoing ? { ...project, updatedAt: now, pushedAt: now } : project));
+  const adjusted = projects.map(applySpanOverride);
+  return [...extra, ...adjusted].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}
 
 function toTimelineProject(input: {
   repoName: string;
@@ -248,7 +317,9 @@ function mergeProjects(
 }
 
 function buildResponse(projects: TimelineProject[], source: TimelineResponse["source"]): TimelineResponse {
-  const curated = projects
+  const all = withManualProjects(projects);
+
+  const curated = all
     .filter((project) => project.isFeatured)
     .sort((a, b) => {
       const aOrder = a.featuredOrder ?? Number.MAX_SAFE_INTEGER;
@@ -259,7 +330,7 @@ function buildResponse(projects: TimelineProject[], source: TimelineResponse["so
 
   return {
     curated,
-    all: projects,
+    all,
     fetchedAt: new Date().toISOString(),
     source,
   };
@@ -287,9 +358,11 @@ function buildSeedFallbackResponse(): TimelineResponse {
       featuredOrder: seed.featuredOrder,
     } satisfies TimelineProject));
 
+  const all = withManualProjects(seedOnlyProjects);
+
   return {
-    curated: seedOnlyProjects,
-    all: seedOnlyProjects,
+    curated: all.filter((project) => project.isFeatured).slice(0, 8),
+    all,
     fetchedAt: new Date().toISOString(),
     source: "seed-fallback",
   };

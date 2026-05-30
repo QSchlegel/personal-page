@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Calendar, FolderGit2, Github, Star, Trophy } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { animate, motion, useReducedMotion } from "framer-motion";
 
-import { cardReveal, sectionReveal, staggerContainer } from "@/lib/motion";
+import { SectionHeader } from "@/components/SectionHeader";
+import { cardReveal, easingStandard, sectionReveal, staggerContainer } from "@/lib/motion";
 import type { GitHubStatsResponse } from "@/lib/types";
 
 function formatSource(source: GitHubStatsResponse["source"]): string {
@@ -28,8 +29,49 @@ function formatLatestPush(value: string | null): string {
   });
 }
 
-function formatMetric(value: number): string {
-  return new Intl.NumberFormat("en-US").format(value);
+/** Animated count-up; resolves instantly when reduced motion is requested. */
+function CountUp({ value }: { value: number }) {
+  const reduceMotion = useReducedMotion();
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      return;
+    }
+
+    const controls = animate(0, value, {
+      duration: 1.1,
+      ease: easingStandard,
+      onUpdate: (latest) => setDisplay(Math.round(latest)),
+    });
+
+    return () => controls.stop();
+  }, [value, reduceMotion]);
+
+  const shown = reduceMotion ? value : display;
+  return <>{new Intl.NumberFormat("en-US").format(shown)}</>;
+}
+
+/** Small decorative sparkline that line-draws under a stat (aria-hidden). */
+function StatSpark({ seed }: { seed: number }) {
+  const base = [4, 9, 6, 12, 8, 15, 11, 19, 16, 22];
+  const values = base.map((value, index) => value + ((seed * 3 + index) % 4));
+  const max = Math.max(...values);
+  const stepX = 100 / (values.length - 1);
+  const points = values
+    .map((value, index) => `${(index * stepX).toFixed(1)},${(23 - (value / max) * 21).toFixed(1)}`)
+    .join(" ");
+
+  return (
+    <svg className="stats-spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">
+      <polyline
+        className="stats-spark-line stats-spark-dash"
+        points={points}
+        pathLength={100}
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
 }
 
 export function GitHubStatsSection() {
@@ -76,13 +118,12 @@ export function GitHubStatsSection() {
       viewport={{ once: true, amount: 0.2 }}
       variants={sectionReveal}
     >
-      <div className="section-heading">
-        <h2>GitHub Stats</h2>
+      <SectionHeader index="02" eyebrow="Signal" title="GitHub Stats">
         <p>A quick snapshot of public repository output and activity.</p>
-      </div>
+      </SectionHeader>
 
       {error ? <p className="status-error">{error}</p> : null}
-      {!stats && !error ? <p className="status-muted">Loading stats...</p> : null}
+      {!stats && !error ? <p className="status-muted">Loading stats…</p> : null}
 
       {stats ? (
         <>
@@ -97,7 +138,10 @@ export function GitHubStatsSection() {
                 <FolderGit2 className="icon-sm" />
                 Public Repos
               </p>
-              <strong>{formatMetric(stats.repoCount)}</strong>
+              <strong>
+                <CountUp value={stats.repoCount} />
+              </strong>
+              <StatSpark seed={1} />
             </motion.article>
 
             <motion.article className="stats-card" variants={cardReveal} custom={1}>
@@ -105,7 +149,10 @@ export function GitHubStatsSection() {
                 <Star className="icon-sm" />
                 Total Stars
               </p>
-              <strong>{formatMetric(stats.totalStars)}</strong>
+              <strong>
+                <CountUp value={stats.totalStars} />
+              </strong>
+              <StatSpark seed={2} />
             </motion.article>
 
             <motion.article className="stats-card" variants={cardReveal} custom={2}>
@@ -113,7 +160,10 @@ export function GitHubStatsSection() {
                 <Trophy className="icon-sm" />
                 Featured Repos
               </p>
-              <strong>{formatMetric(stats.featuredCount)}</strong>
+              <strong>
+                <CountUp value={stats.featuredCount} />
+              </strong>
+              <StatSpark seed={3} />
             </motion.article>
 
             <motion.article className="stats-card" variants={cardReveal} custom={3}>
@@ -121,7 +171,7 @@ export function GitHubStatsSection() {
                 <Calendar className="icon-sm" />
                 Latest Push
               </p>
-              <strong>{formatLatestPush(stats.latestPushAt)}</strong>
+              <strong className="stats-date">{formatLatestPush(stats.latestPushAt)}</strong>
             </motion.article>
           </motion.div>
 

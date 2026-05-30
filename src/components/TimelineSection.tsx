@@ -5,6 +5,8 @@ import { Calendar, ChevronDown, ChevronUp, Clock, ExternalLink, Globe, Github, S
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { IframeEmbed } from "@/components/IframeEmbed";
+import { ProjectGantt } from "@/components/ProjectGantt";
+import { SectionHeader } from "@/components/SectionHeader";
 import { cardReveal, easingStandard, sectionReveal, springSoft, staggerContainer } from "@/lib/motion";
 import type { TimelineProject, TimelineResponse } from "@/lib/types";
 
@@ -19,6 +21,28 @@ function formatProjectDate(value: string | null): string {
     year: "numeric",
   });
 }
+
+const languageColors: Record<string, string> = {
+  TypeScript: "#3178c6",
+  JavaScript: "#f1e05a",
+  Python: "#3572A5",
+  Haskell: "#5e5086",
+  Rust: "#dea584",
+  Go: "#00ADD8",
+  Java: "#b07219",
+  C: "#555555",
+  "C++": "#f34b7d",
+  "C#": "#178600",
+  Ruby: "#701516",
+  Swift: "#F05138",
+  Kotlin: "#A97BFF",
+  Dart: "#00B4AB",
+  Shell: "#89e051",
+  HTML: "#e34c26",
+  CSS: "#563d7c",
+  Nix: "#7e7eff",
+  Plutus: "#8b4cad",
+};
 
 function formatSource(source: TimelineResponse["source"]): string {
   if (source === "database") {
@@ -52,7 +76,15 @@ function ProjectCard({ project, index }: { project: TimelineProject; index: numb
         <div className="timeline-title-row">
           <h3>{project.repoName}</h3>
           <div className="timeline-badges">
-            {project.language ? <span className="timeline-chip">{project.language}</span> : null}
+            {project.language ? (
+              <span className="timeline-chip">
+                <span
+                  className="lang-dot"
+                  style={{ background: languageColors[project.language] ?? "var(--ink-2)" }}
+                />
+                {project.language}
+              </span>
+            ) : null}
             {project.label ? <span className="timeline-chip timeline-chip-accent">{project.label}</span> : null}
           </div>
         </div>
@@ -69,7 +101,7 @@ function ProjectCard({ project, index }: { project: TimelineProject; index: numb
           <Clock className="icon-sm" />
           Updated {formatProjectDate(pushed)}
         </li>
-        <li>
+        <li className={project.stars > 0 ? "timeline-fact-starred" : undefined}>
           <Star className="icon-sm" />
           {project.stars} star{project.stars === 1 ? "" : "s"}
         </li>
@@ -115,7 +147,7 @@ function ProjectCard({ project, index }: { project: TimelineProject; index: numb
 export function TimelineSection() {
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const [view, setView] = useState<"timeline" | "repos">("timeline");
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -148,16 +180,9 @@ export function TimelineSection() {
     return () => controller.abort();
   }, []);
 
-  const projects = useMemo(() => {
-    if (!timeline) {
-      return [];
-    }
+  const projects = useMemo(() => timeline?.all ?? [], [timeline]);
 
-    return showAll ? timeline.all : timeline.curated;
-  }, [timeline, showAll]);
-
-  const featuredCount = timeline?.curated.length ?? 0;
-  const allCount = timeline?.all.length ?? 0;
+  const allCount = projects.length;
 
   return (
     <motion.section
@@ -168,10 +193,9 @@ export function TimelineSection() {
       viewport={{ once: true, amount: 0.15 }}
       variants={sectionReveal}
     >
-      <div className="section-heading">
-        <h2>Project Timeline</h2>
-        <p>Featured work first, with full repository history available when you want more depth.</p>
-      </div>
+      <SectionHeader index="03" eyebrow="Work" title="Project Timeline">
+        <p>A live view of public repositories — first as a timeline of when each was built and last active, then as full detail cards.</p>
+      </SectionHeader>
 
       {error ? <p className="status-error">{error}</p> : null}
       {!timeline && !error ? (
@@ -199,40 +223,51 @@ export function TimelineSection() {
 
       {timeline ? (
         <>
-          <div className="timeline-switcher" role="tablist" aria-label="Project scope">
+          <div className="timeline-switcher" role="group" aria-label="Project view">
             <button
               type="button"
-              className={!showAll ? "active" : ""}
-              onClick={() => setShowAll(false)}
-              aria-pressed={!showAll}
+              className={view === "timeline" ? "active" : ""}
+              onClick={() => setView("timeline")}
+              aria-pressed={view === "timeline"}
             >
-              Featured ({featuredCount})
+              Timeline
             </button>
             <button
               type="button"
-              className={showAll ? "active" : ""}
-              onClick={() => setShowAll(true)}
-              aria-pressed={showAll}
+              className={view === "repos" ? "active" : ""}
+              onClick={() => setView("repos")}
+              aria-pressed={view === "repos"}
             >
               All Repos ({allCount})
             </button>
           </div>
 
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={showAll ? "all" : "featured"}
-              className="timeline-grid"
-              variants={staggerContainer}
-              initial={false}
-              animate={reduceMotion ? undefined : "visible"}
-              exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.16 } }}
-            >
-              {projects.length > 0 ? (
-                projects.map((project, index) => <ProjectCard key={project.repoName} project={project} index={index} />)
-              ) : (
-                <p className="status-muted">No projects to display.</p>
-              )}
-            </motion.div>
+            {view === "timeline" ? (
+              <motion.div
+                key="gantt"
+                initial={false}
+                animate={reduceMotion ? undefined : { opacity: 1 }}
+                exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.16 } }}
+              >
+                <ProjectGantt projects={projects} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="cards"
+                className="timeline-grid"
+                variants={staggerContainer}
+                initial={false}
+                animate={reduceMotion ? undefined : "visible"}
+                exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.16 } }}
+              >
+                {projects.length > 0 ? (
+                  projects.map((project, index) => <ProjectCard key={project.repoName} project={project} index={index} />)
+                ) : (
+                  <p className="status-muted">No projects to display.</p>
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
 
           <div className="timeline-actions">

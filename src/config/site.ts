@@ -30,6 +30,10 @@ export const siteConfig = {
       title: "Ship With Confidence",
       description: "Build with practical guardrails and iterate quickly using real-world feedback.",
     },
+    {
+      title: "Refine Relentlessly",
+      description: "Revisit shipped work with fresh eyes, tighten what's loose, and raise the bar each cycle.",
+    },
   ],
   skills: [
     "TypeScript",
@@ -44,6 +48,7 @@ export const siteConfig = {
   contact: {
     github: env.PUBLIC_GITHUB_URL,
     twitter: env.PUBLIC_TWITTER_URL ?? "https://x.com/SchlegelQuirin",
+    linkedin: env.PUBLIC_LINKEDIN_URL,
     email: env.PUBLIC_EMAIL,
   },
 } as const;

@@ -1,27 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, IBM_Plex_Mono, JetBrains_Mono, Manrope, Sora, Spectral } from "next/font/google";
+import { Archivo, DM_Mono, Fraunces, IBM_Plex_Mono, Lora, Spectral } from "next/font/google";
 
 import { SiteShell } from "@/components/SiteShell";
 import { siteConfig } from "@/config/site";
 
 import "./globals.css";
 
-const uiFont = Manrope({
-  variable: "--font-ui",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const displayFont = Sora({
+// Fonts matched to the print CV: Archivo (display), Lora (serif body), DM Mono (labels).
+const displayFont = Archivo({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["500", "600", "700", "800"],
+  display: "swap",
 });
 
-const monoFont = JetBrains_Mono({
+const monoFont = DM_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
+
+const serifFont = Lora({
+  variable: "--font-serif",
+  subsets: ["latin"],
   weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 // Editorial faces for the knowledge-vault reading surface (mirrors the print PDF).
@@ -90,7 +95,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${uiFont.variable} ${displayFont.variable} ${monoFont.variable} ${readingDisplayFont.variable} ${readingBodyFont.variable} ${readingMonoFont.variable}`}
+        className={`${displayFont.variable} ${monoFont.variable} ${serifFont.variable} ${readingDisplayFont.variable} ${readingBodyFont.variable} ${readingMonoFont.variable}`}
       >
         <SiteShell>{children}</SiteShell>
       </body>
