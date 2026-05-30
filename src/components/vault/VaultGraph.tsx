@@ -47,6 +47,7 @@ export function VaultGraph({ data }: VaultGraphProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphMethods | undefined>(undefined);
+  const tunedRef = useRef(false);
   const [width, setWidth] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
@@ -71,18 +72,38 @@ export function VaultGraph({ data }: VaultGraphProps) {
     return () => observer.disconnect();
   }, []);
 
-  // Once the graph is mounted, push the default forces toward an airier layout:
-  // longer links, stronger node repulsion, gentler decay so it settles farther
-  // apart. Otherwise everything piles up around the centre.
-  const onEngineRef = useCallback(() => {
-    const fg = graphRef.current;
-    if (!fg) return;
-    const link = fg.d3Force("link") as { distance: (d: number) => unknown } | undefined;
-    const charge = fg.d3Force("charge") as { strength: (s: number) => unknown } | undefined;
-    link?.distance(95);
-    charge?.strength(-260);
-    fg.d3ReheatSimulation();
-  }, []);
+  // Push d3-force defaults toward an airier layout: longer links + stronger
+  // repulsion so the graph settles spread out instead of piling up at the
+  // centre. Apply this once, the moment the ForceGraph2D instance becomes
+  // available (it mounts only when `width > 0`, so we key off that). The
+  // simulation hasn't converged yet, so the new parameters are picked up
+  // naturally on the next tick — no d3ReheatSimulation() kick required.
+  //
+  // Do NOT do this from onEngineStop: that handler fires when the simulation
+  // freezes, and calling d3ReheatSimulation() inside it restarts the engine,
+  // which then stops, reheats, stops again… an infinite CPU-hot loop.
+  useEffect(() => {
+    if (width <= 0 || tunedRef.current) return;
+    // ForceGraph2D is dynamically imported, so on the first render where
+    // `width > 0` the chunk may not have loaded yet and graphRef.current is
+    // still null. Poll each animation frame until the instance exists, then
+    // tune once and stop.
+    let raf = 0;
+    const tryTune = () => {
+      const fg = graphRef.current;
+      if (!fg) {
+        raf = requestAnimationFrame(tryTune);
+        return;
+      }
+      tunedRef.current = true;
+      const link = fg.d3Force("link") as { distance: (d: number) => unknown } | undefined;
+      const charge = fg.d3Force("charge") as { strength: (s: number) => unknown } | undefined;
+      link?.distance(95);
+      charge?.strength(-260);
+    };
+    raf = requestAnimationFrame(tryTune);
+    return () => cancelAnimationFrame(raf);
+  }, [width]);
 
   const nodeCanvasObject = useCallback(
     (rawNode: NodeObject, ctx: CanvasRenderingContext2D, globalScale: number) => {
@@ -161,7 +182,6 @@ export function VaultGraph({ data }: VaultGraphProps) {
           linkWidth={1.1}
           d3VelocityDecay={0.32}
           cooldownTicks={220}
-          onEngineStop={onEngineRef}
           nodeCanvasObjectMode={() => "replace"}
           nodeCanvasObject={nodeCanvasObject}
           // Make the whole node area clickable / hoverable, not just the painted dot.
