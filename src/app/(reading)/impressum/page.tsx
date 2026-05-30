@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function ImpressumPage() {
   return (
     <article>
-      <header className="masthead">
+      <header className="article-head">
         <p className="eyebrow">Legal</p>
         <h1>Impressum</h1>
         <p className="subtitle">Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz).</p>

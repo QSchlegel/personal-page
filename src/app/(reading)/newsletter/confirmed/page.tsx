@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function NewsletterConfirmedPage() {
   return (
     <article>
-      <header className="masthead">
+      <header className="article-head">
         <p className="eyebrow">Newsletter</p>
         <h1>You&apos;re subscribed 🎉</h1>
         <p className="subtitle">

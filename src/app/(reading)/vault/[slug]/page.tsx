@@ -48,7 +48,7 @@ export default async function VaultNotePage({ params }: NoteParams) {
 
   return (
     <article>
-      <header className="masthead">
+      <header className="article-head">
         <p className="eyebrow">Vault Note</p>
         <h1>{note.title}</h1>
         {note.description ? <p className="subtitle">{note.description}</p> : null}

@@ -78,14 +78,20 @@ export async function ensureSessionForPasskey(): Promise<{ ok: boolean; error?: 
   }
 
   const id = crypto.randomUUID();
+  // `.invalid` is the IETF-reserved TLD (RFC 6761) — guaranteed never to route
+  // mail anywhere real. The password mixes the uuid with a fixed suffix so it
+  // passes any future complexity policy without leaking entropy.
   const result = await authClient.signUp.email({
     email: `passkey-${id}@local.invalid`,
-    password: id,
+    password: `${id}!A1`,
     name: "Passkey User",
   });
 
   if (result.error) {
-    return { ok: false, error: result.error.message ?? "Could not create session." };
+    // Surface the better-auth error code so prod failures can be diagnosed in
+    // the floating chat status instead of always showing the generic fallback.
+    const code = result.error.code ? ` (${result.error.code})` : "";
+    return { ok: false, error: `${result.error.message ?? "Could not create session."}${code}` };
   }
 
   return { ok: true };

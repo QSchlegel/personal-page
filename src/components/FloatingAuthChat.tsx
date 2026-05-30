@@ -143,13 +143,13 @@ export function FloatingAuthChat() {
       return;
     }
 
-    // Always attempt a discoverable passkey sign-in first so returning users —
-    // including those with a synced passkey on a new browser, cleared storage,
-    // or private mode — recover their existing chat instead of being pushed into
-    // a fresh account. On failure, onSignInPasskey falls through to the
-    // register/sign-in choice.
-    await onSignInPasskey();
-  }, [step, isPending, isSignedIn, onSignInPasskey]);
+    // Don't auto-attempt discoverable sign-in: it triggers the browser's full
+    // WebAuthn picker (QR / security key / phone) even when the user just wants
+    // to register a new on-device passkey. Show the explicit Register / Sign In
+    // choice instead — users who do have a synced passkey can still pick Sign
+    // In themselves.
+    setStep("choose");
+  }, [step, isPending, isSignedIn]);
 
   const onCancel = useCallback(() => {
     setStep("idle");

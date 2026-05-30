@@ -17,7 +17,7 @@ export default async function NewsletterPage({ searchParams }: NewsletterPagePro
 
   return (
     <article>
-      <header className="masthead">
+      <header className="article-head">
         <p className="eyebrow">Knowledge Vault</p>
         <h1>The newsletter</h1>
         <p className="subtitle">
