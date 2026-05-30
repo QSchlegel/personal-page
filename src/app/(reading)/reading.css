@@ -1,0 +1,501 @@
+/* ------------------------------------------------------------------ *
+ * Reading surface for the public knowledge vault (blog + vault notes). *
+ * Editorial light/dark theme that mirrors the print PDF. Light is the   *
+ * default; system preference flips it; a manual toggle overrides both.  *
+ * Everything is scoped under .reading so the dark site shell is intact. *
+ * ------------------------------------------------------------------ */
+
+.reading {
+  --paper: #ffffff;
+  --ink: #1b1813;
+  --muted: #6b6151;
+  --faint: #8a7f6c;
+  --hair: #d8cfbc;
+  --accent: #0f5a63;
+  --accent-deep: #0a3f46;
+  --bronze: #9c6b3e;
+  --accent-soft: rgba(15, 90, 99, 0.055);
+  --bronze-soft: rgba(156, 107, 62, 0.07);
+  /* Figures are drawn for light paper; keep them on a near-white card in both themes. */
+  --fig-bg: #fcfbf8;
+
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: clamp(22px, 4vw, 60px);
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: var(--font-reading-body), Georgia, "Times New Roman", serif;
+  font-size: 1.06rem;
+  line-height: 1.62;
+  position: relative;
+}
+
+@media (prefers-color-scheme: dark) {
+  .reading {
+    --paper: #0e1622;
+    --ink: #e7eef5;
+    --muted: #aab8c6;
+    --faint: #8595a4;
+    --hair: rgba(150, 175, 200, 0.18);
+    --accent: #6ec8ff;
+    --accent-deep: #9ad8ff;
+    --bronze: #d8a878;
+    --accent-soft: rgba(110, 200, 255, 0.06);
+    --bronze-soft: rgba(216, 168, 120, 0.08);
+    --fig-bg: #f6f3ee;
+  }
+}
+
+/* Manual override beats system preference. */
+html[data-reading-theme="light"] .reading {
+  --paper: #ffffff;
+  --ink: #1b1813;
+  --muted: #6b6151;
+  --faint: #8a7f6c;
+  --hair: #d8cfbc;
+  --accent: #0f5a63;
+  --accent-deep: #0a3f46;
+  --bronze: #9c6b3e;
+  --accent-soft: rgba(15, 90, 99, 0.055);
+  --bronze-soft: rgba(156, 107, 62, 0.07);
+  --fig-bg: #fcfbf8;
+}
+
+html[data-reading-theme="dark"] .reading {
+  --paper: #0e1622;
+  --ink: #e7eef5;
+  --muted: #aab8c6;
+  --faint: #8595a4;
+  --hair: rgba(150, 175, 200, 0.18);
+  --accent: #6ec8ff;
+  --accent-deep: #9ad8ff;
+  --bronze: #d8a878;
+  --accent-soft: rgba(110, 200, 255, 0.06);
+  --bronze-soft: rgba(216, 168, 120, 0.08);
+  --fig-bg: #f6f3ee;
+}
+
+/* ---------- toolbar / theme toggle ---------- */
+.reading-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.reading-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  padding: 6px 13px;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+.reading-theme-toggle:hover {
+  color: var(--accent-deep);
+  border-color: var(--accent);
+}
+
+/* ---------- masthead ---------- */
+.reading .eyebrow {
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 12px;
+}
+.reading .masthead h1 {
+  font-family: var(--font-reading-display), Georgia, serif;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+.reading .subtitle {
+  font-family: var(--font-reading-display), Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: var(--muted);
+  margin: 0 0 16px;
+  max-width: 46em;
+}
+.reading .article-meta {
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.72rem;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+  border-top: 1px solid var(--hair);
+  border-bottom: 2px solid var(--ink);
+  padding: 8px 0;
+  margin: 0 0 26px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ---------- body typography ---------- */
+.reading .article-body > p:first-of-type::first-letter {
+  font-family: var(--font-reading-display), Georgia, serif;
+  font-weight: 600;
+  font-size: 3.1em;
+  line-height: 0.82;
+  float: left;
+  padding: 0.04em 0.09em 0 0;
+  color: var(--accent);
+}
+.reading h2 {
+  font-family: var(--font-reading-display), Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(1.3rem, 3vw, 1.65rem);
+  line-height: 1.14;
+  letter-spacing: -0.005em;
+  margin: 1.7em 0 0.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid var(--hair);
+  color: var(--ink);
+}
+.reading h3 {
+  font-family: var(--font-reading-display), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin: 1.4em 0 0.4em;
+  color: var(--ink);
+}
+.reading h2 a,
+.reading h3 a {
+  color: inherit;
+}
+.reading p {
+  margin: 0 0 0.85em;
+}
+.reading em {
+  font-style: italic;
+}
+.reading strong {
+  font-weight: 600;
+  color: var(--accent-deep);
+}
+.reading a {
+  color: var(--accent-deep);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-underline-offset: 2px;
+}
+.reading a:hover {
+  text-decoration-color: var(--accent);
+}
+
+/* ---------- wikilinks ---------- */
+.reading .wikilink {
+  color: var(--accent-deep);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  font-weight: 500;
+}
+.reading .wikilink:hover {
+  border-bottom-color: var(--accent);
+}
+.reading .wikilink-stub {
+  color: var(--faint);
+  border-bottom: 1px dashed var(--faint);
+  cursor: help;
+}
+
+/* ---------- side boxes ---------- */
+.reading .box {
+  border: 1px solid var(--hair);
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 14px 18px;
+  margin: 18px 0;
+  border-radius: 4px;
+}
+.reading .box.bronze {
+  border-left-color: var(--bronze);
+  background: var(--bronze-soft);
+}
+.reading .box .label {
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 0 0 9px;
+}
+.reading .box.bronze .label {
+  color: var(--bronze);
+}
+.reading .deflist {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.42;
+}
+.reading .deflist > div {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--hair);
+}
+.reading .deflist > div:last-child {
+  border-bottom: none;
+}
+.reading .deflist dt {
+  font-family: var(--font-reading-mono), monospace;
+  font-weight: 500;
+  color: var(--accent-deep);
+  flex: 0 0 30%;
+}
+.reading .deflist dd {
+  margin: 0;
+  flex: 1;
+}
+.reading .namegrid {
+  columns: 2;
+  column-gap: 24px;
+  margin: 4px 0 0;
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+.reading .namegrid span {
+  display: block;
+  break-inside: avoid;
+}
+.reading .namegrid span::before {
+  content: "›";
+  color: var(--bronze);
+  margin-right: 0.5em;
+}
+
+/* ---------- pull quote ---------- */
+.reading .pquote {
+  font-family: var(--font-reading-display), Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.4rem;
+  line-height: 1.3;
+  color: var(--accent-deep);
+  border-left: 2px solid var(--bronze);
+  padding: 2px 0 2px 18px;
+  margin: 22px 0;
+}
+
+/* ---------- figures ---------- */
+.reading figure {
+  margin: 22px 0;
+  background: var(--fig-bg);
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  padding: 18px;
+}
+.reading figure svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.reading figcaption {
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.7rem;
+  color: #6b6151;
+  letter-spacing: 0.02em;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+.reading .fig-tag {
+  color: #0f5a63;
+  font-weight: 600;
+}
+
+/* ---------- fine print ---------- */
+.reading .fineprint {
+  margin-top: 28px;
+  padding-top: 10px;
+  border-top: 2px solid var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.reading .fineprint .label {
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  display: block;
+  margin-bottom: 7px;
+}
+.reading .fineprint ol {
+  margin: 0;
+  padding-left: 1.4em;
+}
+.reading .fineprint li {
+  margin: 0 0 4px;
+}
+
+/* ---------- backlinks ---------- */
+.reading .backlinks {
+  margin-top: 34px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hair);
+}
+.reading .backlinks h2 {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+.reading .backlinks ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.reading .backlinks a {
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.reading .backlinks a:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- index / card lists ---------- */
+.reading .index-head {
+  margin-bottom: 26px;
+}
+.reading .note-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+.reading .note-card {
+  display: block;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  padding: 18px;
+  background: var(--accent-soft);
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+.reading .note-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.reading .note-card h3 {
+  font-family: var(--font-reading-display), Georgia, serif;
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+.reading .note-card p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+.reading .note-card .kicker {
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* ---------- PDF download CTA ---------- */
+.reading .pdf-cta {
+  margin: 30px 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  padding: 22px;
+}
+.reading .pdf-cta h3 {
+  margin: 0 0 6px;
+}
+.reading .pdf-cta p {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.reading .pdf-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.reading .pdf-form input[type="email"] {
+  flex: 1 1 220px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-reading-body), serif;
+}
+.reading .pdf-form button,
+.reading .reading-btn {
+  padding: 11px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent-deep);
+  color: #fff;
+  font-family: var(--font-reading-mono), monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.reading .pdf-form button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.reading .consent-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 12px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.reading .consent-row input {
+  margin-top: 3px;
+}
+.reading .form-status {
+  margin-top: 12px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+.reading .form-status.ok {
+  color: var(--accent-deep);
+}
+.reading .form-status.err {
+  color: #b3402e;
+}
+
+/* ---------- vault graph ---------- */
+.vault-graph {
+  width: 100%;
+  height: 460px;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  background: var(--fig-bg);
+  overflow: hidden;
+  margin: 8px 0 26px;
+}

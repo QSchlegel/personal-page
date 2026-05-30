@@ -22,6 +22,17 @@ export const auth = betterAuth({
       rpName: "QS Portfolio",
       rpID: getRpIdFromUrl(env.BETTER_AUTH_URL),
       origin: getAuthOrigins(),
+      // Store passkeys on-device only. "platform" stops browsers from offering
+      // roaming authenticators (security keys / QR "use a phone" hybrid flow),
+      // and a required resident key makes it a real discoverable passkey.
+      // Enforced server-side so it applies to every registration path,
+      // independent of the client query param.
+      authenticatorSelection: {
+        authenticatorAttachment: "platform",
+        residentKey: "required",
+        requireResidentKey: true,
+        userVerification: "preferred",
+      },
     }),
   ],
 });

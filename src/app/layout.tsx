@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Manrope, Sora } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, JetBrains_Mono, Manrope, Sora, Spectral } from "next/font/google";
 
 import { SiteShell } from "@/components/SiteShell";
 import { siteConfig } from "@/config/site";
@@ -20,6 +20,27 @@ const displayFont = Sora({
 
 const monoFont = JetBrains_Mono({
   variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+// Editorial faces for the knowledge-vault reading surface (mirrors the print PDF).
+const readingDisplayFont = Fraunces({
+  variable: "--font-reading-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
+
+const readingBodyFont = Spectral({
+  variable: "--font-reading-body",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
+
+const readingMonoFont = IBM_Plex_Mono({
+  variable: "--font-reading-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
@@ -68,7 +89,9 @@ export default function RootLayout({
           data-website-id="a7b0e8f0-cf49-4cf7-a0e3-5b0b7137aa3b"
         />
       </head>
-      <body className={`${uiFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
+      <body
+        className={`${uiFont.variable} ${displayFont.variable} ${monoFont.variable} ${readingDisplayFont.variable} ${readingBodyFont.variable} ${readingMonoFont.variable}`}
+      >
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

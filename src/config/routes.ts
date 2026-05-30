@@ -14,9 +14,9 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { href: "/", label: "Home" },
-  { href: "/comms", label: "Comms" },
-  { href: "/admin/inbox", label: "Inbox" },
-  { href: "/settings/bot", label: "Bot Settings" },
+  { href: "/vault", label: "Vault" },
+  { href: "/blog", label: "Six-Pagers" },
+  { href: "/newsletter", label: "Newsletter" },
 ];
 
 export function getRouteMeta(pathname: string): RouteMeta {
@@ -26,6 +26,33 @@ export function getRouteMeta(pathname: string): RouteMeta {
       description: "Clarity-first software for teams shipping in public under real technical constraints.",
       showIntro: false,
       motionProfile: "bold",
+    };
+  }
+
+  if (pathname.startsWith("/blog")) {
+    return {
+      title: "Six-Pagers",
+      description: "Long-form, illustrated monographs from the knowledge vault.",
+      showIntro: false,
+      motionProfile: "calm",
+    };
+  }
+
+  if (pathname.startsWith("/vault")) {
+    return {
+      title: "The Vault",
+      description: "An evolving knowledge graph of interlinked notes.",
+      showIntro: false,
+      motionProfile: "calm",
+    };
+  }
+
+  if (pathname.startsWith("/newsletter")) {
+    return {
+      title: "Newsletter",
+      description: "Get an email when a new six-pager is published.",
+      showIntro: false,
+      motionProfile: "calm",
     };
   }
 
