@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { MessageCircle, Plus, Send } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
@@ -294,8 +294,6 @@ export function CommsWorkspace({
   }
 
   // -- optimistic send ---------------------------------------------------------
-  const optimisticIdRef = useRef<string | null>(null);
-
   async function onSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus(null);
@@ -319,7 +317,6 @@ export function CommsWorkspace({
       createdAt: new Date().toISOString(),
       pending: true,
     };
-    optimisticIdRef.current = optimistic.id;
     setMessages((prev) => [...prev, optimistic]);
 
     try {
@@ -341,7 +338,10 @@ export function CommsWorkspace({
 
       // Clear draft only AFTER the server accepted the message.
       setDraftMessage("");
-      // Refetch is the simplest reconciliation — replaces our placeholder with the real row.
+      // Drop the placeholder BEFORE refetch — the server returns the real row
+      // with its own id, so loadMessages's preservePending filter would keep
+      // the tmp_* row forever (visible as a permanent "sending…" duplicate).
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       await loadMessages(selectedThreadId, { silent: true });
       void loadThreads();
     } catch (error) {

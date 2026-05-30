@@ -80,10 +80,29 @@ export function FloatingAuthChat() {
     setResetKey((value) => value + 1);
   }, []);
 
-  /** Either open the chat (associated) or prompt for email association first. */
+  /**
+   * Either open the chat (associated) or prompt for email association first.
+   *
+   * IMPORTANT: don't trust the `isBootstrap` value captured by this render —
+   * `useSession()` updates its store asynchronously, so immediately after
+   * `ensureSessionForPasskey` + `registerPasskey` the closure here is still
+   * looking at the pre-registration session and would route a brand-new
+   * bootstrap user into the chat instead of the associate-email step. Pull a
+   * fresh session here so the branch decision uses the actual current email.
+   */
   const advanceAfterAuth = useCallback(
-    (message: string | null = null) => {
-      if (isBootstrap) {
+    async (message: string | null = null) => {
+      let routeToAssociate = isBootstrap;
+      try {
+        const fresh = await authClient.getSession({ fetchOptions: { cache: "no-store" } });
+        const email = fresh?.data?.user?.email;
+        if (typeof email === "string") {
+          routeToAssociate = isBootstrapEmail(email);
+        }
+      } catch {
+        // fall back to the captured value
+      }
+      if (routeToAssociate) {
         setStep("associate-email");
         setStatus(message);
       } else {
@@ -99,10 +118,10 @@ export function FloatingAuthChat() {
     try {
       const result = await signInPasskeyOnThisDevice();
       if (!result.error) {
-        // useSession will pick up the new session shortly; let advanceAfterAuth
-        // pivot once the email surfaces. Re-running an effect is overkill —
-        // the next render with fresh `isBootstrap` will branch correctly.
-        openChat();
+        // Returning users could be associated OR still bootstrap (e.g. signed
+        // in once, closed the modal before associating). Let advanceAfterAuth
+        // pivot based on the fresh session, same as register.
+        await advanceAfterAuth();
         return;
       }
       setStatus(toErrorMessage(result.error, "Couldn't sign in with that passkey. Register one to continue."));
@@ -110,7 +129,7 @@ export function FloatingAuthChat() {
       setStatus(error instanceof Error ? error.message : "Passkey sign-in failed.");
     }
     setStep("choose");
-  }, [openChat]);
+  }, [advanceAfterAuth]);
 
   const onRegisterPasskey = useCallback(async () => {
     setStep("busy");

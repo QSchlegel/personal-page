@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { writeAuditLog } from "@/lib/audit";
@@ -105,10 +106,27 @@ export async function POST(request: Request) {
   // Update the user's email + flag as verified (we trust them for now —
   // there's no confirmation-link round-trip yet; if abuse becomes an issue
   // we can layer one on without changing this contract).
-  await prisma.user.update({
-    where: { id: currentUser.id },
-    data: { email: normalized, emailVerified: true },
-  });
+  //
+  // The `findUnique` check above is necessary but not sufficient: two
+  // concurrent requests could both pass it before either commits. The
+  // database's @unique on User.email is the real authority — catch its
+  // P2002 violation and surface the same EMAIL_TAKEN error the pre-check
+  // would have returned.
+  try {
+    await prisma.user.update({
+      where: { id: currentUser.id },
+      data: { email: normalized, emailVerified: true },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return jsonError(
+        "EMAIL_TAKEN",
+        "That email already belongs to another account. Sign in with its passkey instead.",
+        409,
+      );
+    }
+    throw error;
+  }
 
   // Decoupled, optional newsletter opt-in. requestNewsletterOptIn handles the
   // double opt-in flow for non-subscribers; if the address is already CONFIRMED
