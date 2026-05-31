@@ -2395,6 +2395,24 @@ p {
   clip-path: polygon(14% 50%, 38% 76%, 86% 22%, 100% 36%, 38% 100%, 0 64%);
 }
 
+/* Forced-colors (Windows High Contrast, Edge HC themes) ignores custom
+   backgrounds/borders, which would make the rust square + cream tick
+   invisible. Hand the checkbox back to the system in that mode so users
+   relying on HC see a native indicator with proper contrast. */
+@media (forced-colors: active) {
+  .floating-chat-associate .associate-consent input[type="checkbox"] {
+    appearance: auto;
+    -webkit-appearance: auto;
+    forced-color-adjust: auto;
+    background: ButtonFace;
+    border: 1px solid ButtonText;
+    box-shadow: none;
+  }
+  .floating-chat-associate .associate-consent input[type="checkbox"]:checked::before {
+    content: none;
+  }
+}
+
 .floating-chat-associate .associate-consent a {
   color: var(--accent-1);
   text-decoration: underline;
