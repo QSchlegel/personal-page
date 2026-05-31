@@ -1,28 +1,38 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { MessageCircle, Plus, Send } from "lucide-react";
+import { Bot, ChevronLeft, MessageCircle, Plus, Send, User } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { AuthPanel } from "@/components/AuthPanel";
 import { cardReveal, easingStandard, springSoft } from "@/lib/motion";
 import { authClient } from "@/lib/auth-client";
+import { friendlyStatus, participantName, senderLabel } from "@/lib/comms-display";
+import type { SecureTargetKind } from "@/lib/comms-display";
 import type { ThreadMessage, ThreadSummary } from "@/lib/types";
 
 const configuredSecureTargets = [
   {
     id: "qs",
-    label: "QS",
+    kind: "person",
+    label: "Quirin",
     email: process.env.NEXT_PUBLIC_SECURE_CHAT_QS_EMAIL ?? "",
-    description: "Open a secure thread with Quirin.",
+    description: "Message me directly — I'll reply when I'm around.",
   },
   {
     id: "qsbot",
-    label: "QSBot",
+    kind: "ai",
+    label: "AI Assistant",
     email: process.env.NEXT_PUBLIC_SECURE_CHAT_QSBOT_EMAIL ?? "",
-    description: "Open a secure thread with the bot identity.",
+    description: "Ask my AI assistant — usually replies right away.",
   },
-] as const;
+] as const satisfies ReadonlyArray<{
+  id: string;
+  kind: SecureTargetKind;
+  label: string;
+  email: string;
+  description: string;
+}>;
 
 /** While a thread is open and the tab is visible, refetch every N ms. */
 const MESSAGE_POLL_MS = 5_000;
@@ -48,9 +58,12 @@ interface ApiError {
 
 interface SecureTarget {
   id: string;
+  kind: SecureTargetKind;
   label: string;
   email: string;
   description: string;
+  /** AI target whose email isn't configured yet — render disabled. */
+  comingSoon?: boolean;
 }
 
 interface CommsWorkspaceProps {
@@ -97,7 +110,18 @@ export function CommsWorkspace({
 
     for (const target of configuredSecureTargets) {
       const normalized = target.email.trim().toLowerCase();
-      if (!normalized || normalized === currentUserEmail || seenEmails.has(normalized)) {
+
+      // An AI target with no configured email still gets a "coming soon"
+      // placeholder so the option is visible; a person target without an email
+      // (or one that resolves to the viewer themselves) is dropped entirely.
+      if (!normalized) {
+        if (target.kind === "ai") {
+          targets.push({ ...target, email: "", comingSoon: true });
+        }
+        continue;
+      }
+
+      if (normalized === currentUserEmail || seenEmails.has(normalized)) {
         continue;
       }
 
@@ -110,6 +134,23 @@ export function CommsWorkspace({
 
     return targets;
   }, [currentUserEmail]);
+
+  // A target the viewer can actually click (excludes "coming soon" placeholders).
+  const hasActionableTarget = useMemo(
+    () => secureTargets.some((target) => !target.comingSoon),
+    [secureTargets],
+  );
+
+  // True when the viewer is one of the configured identities (e.g. the owner),
+  // so the empty-state copy can explain that incoming threads land here.
+  const ownerIsViewer = useMemo(
+    () =>
+      currentUserEmail !== "" &&
+      configuredSecureTargets.some(
+        (target) => target.email.trim().toLowerCase() === currentUserEmail,
+      ),
+    [currentUserEmail],
+  );
 
   // -- shared response handling -------------------------------------------------
   const handleAuthError = useCallback(
@@ -132,7 +173,10 @@ export function CommsWorkspace({
     }
     const payload = (await response.json()) as ThreadsResponse;
     setThreads(payload.threads);
-    setSelectedThreadId((previous) => previous ?? payload.threads[0]?.id ?? null);
+    // Don't auto-open the first thread: on mobile the workspace shows one pane
+    // at a time, so the user should land on the list/contact view, not be
+    // dropped straight into a conversation.
+    setSelectedThreadId((previous) => previous ?? null);
   }, [handleAuthError]);
 
   // -- messages list (also the polling tick) ------------------------------------
@@ -240,6 +284,8 @@ export function CommsWorkspace({
             setStatus(
               `No account exists for ${targetUserEmail}. They need to register a passkey first.`,
             );
+          } else if (code === "INVALID_TARGET") {
+            setStatus("That's your own address — pick someone else to message.");
           } else {
             setStatus(handleAuthError(code, payload.error?.message ?? "Unable to create thread."));
           }
@@ -387,7 +433,7 @@ export function CommsWorkspace({
       {showPageHeading ? (
         <div className="section-heading">
           <h1>Authenticated Comms</h1>
-          <p>Private 1:1 threads with audit-backed exchange for QS and QSBot.</p>
+          <p>Private 1:1 threads to reach Quirin or his AI assistant, with an audit-backed exchange.</p>
         </div>
       ) : null}
 
@@ -404,7 +450,7 @@ export function CommsWorkspace({
         ) : null}
       </AnimatePresence>
 
-      <div className="comms-grid">
+      <div className="comms-grid" data-view={selectedThreadId ? "thread" : "list"}>
         <motion.aside className="comms-sidebar" layout={!reduceMotion}>
           <h2>
             <MessageCircle className="icon-sm" />
@@ -413,89 +459,132 @@ export function CommsWorkspace({
 
           {secureTargets.length ? (
             <div className="secure-targets">
-              <h3>Start Secure Chat</h3>
-              <p className="status-muted">Choose QS for direct conversation or QSBot for automated replies.</p>
+              <h3>Get in touch</h3>
+              <p className="status-muted">
+                Pick who you&apos;d like to reach. Threads are private and secured by your passkey.
+              </p>
               <div className="secure-targets-grid">
-                {secureTargets.map((target, index) => (
-                  <motion.button
-                    key={target.id}
-                    type="button"
-                    className="secure-target-button"
-                    onClick={() => void onCreateSecureTargetThread(target)}
-                    disabled={isCreatingThread}
-                    aria-label={`Start secure chat with ${target.label}`}
-                    variants={cardReveal}
-                    custom={index}
-                    initial={false}
-                    animate={reduceMotion ? undefined : "visible"}
-                    whileHover={reduceMotion ? undefined : { y: -2, transition: springSoft }}
-                  >
-                    <strong>{target.label}</strong>
-                    <span>{target.description}</span>
-                  </motion.button>
-                ))}
+                {secureTargets.map((target, index) => {
+                  const Icon = target.kind === "ai" ? Bot : User;
+                  return (
+                    <motion.button
+                      key={target.id}
+                      type="button"
+                      className="secure-target-button"
+                      data-kind={target.kind}
+                      data-coming-soon={target.comingSoon ? "" : undefined}
+                      onClick={
+                        target.comingSoon
+                          ? undefined
+                          : () => void onCreateSecureTargetThread(target)
+                      }
+                      disabled={isCreatingThread || target.comingSoon}
+                      aria-label={
+                        target.comingSoon
+                          ? `${target.label} — coming soon`
+                          : `Start secure chat with ${target.label}`
+                      }
+                      variants={cardReveal}
+                      custom={index}
+                      initial={false}
+                      animate={reduceMotion ? undefined : "visible"}
+                      whileHover={
+                        reduceMotion || target.comingSoon ? undefined : { y: -2, transition: springSoft }
+                      }
+                    >
+                      <Icon className="icon-sm" />
+                      <strong>{target.comingSoon ? `${target.label} (coming soon)` : target.label}</strong>
+                      <span>
+                        {target.comingSoon ? "Coming soon — set up in progress." : target.description}
+                      </span>
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
           ) : null}
 
           <ul>
             {threads.length > 0 ? (
-              threads.map((thread, index) => {
-                const other = thread.participants.find((participant) => participant.id !== currentUserId);
-                return (
-                  <motion.li
-                    key={thread.id}
-                    initial={false}
-                    animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                    transition={{ duration: 0.22, delay: index * 0.02 }}
+              threads.map((thread, index) => (
+                <motion.li
+                  key={thread.id}
+                  initial={false}
+                  animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22, delay: index * 0.02 }}
+                >
+                  <button
+                    type="button"
+                    className={thread.id === selectedThreadId ? "active" : ""}
+                    onClick={() => setSelectedThreadId(thread.id)}
                   >
-                    <button
-                      type="button"
-                      className={thread.id === selectedThreadId ? "active" : ""}
-                      onClick={() => setSelectedThreadId(thread.id)}
-                    >
-                      <strong>{other?.name ?? other?.email ?? "Unknown"}</strong>
-                      <span>{thread.status}</span>
-                    </button>
-                  </motion.li>
-                );
-              })
+                    <strong>{participantName(thread, currentUserId)}</strong>
+                    <span className="comms-status-badge" data-status={thread.status}>
+                      {friendlyStatus(thread.status)}
+                    </span>
+                  </button>
+                </motion.li>
+              ))
             ) : (
               <li>
-                <p className="status-muted">No threads yet. Start one using the quick actions below.</p>
+                <p className="status-muted">
+                  {hasActionableTarget
+                    ? "No conversations yet. Use a button above to start one."
+                    : ownerIsViewer
+                      ? "No conversations yet. Threads that people start with you will show up here."
+                      : "No conversations yet. Use ‘Reach someone else by email’ below to start one."}
+                </p>
               </li>
             )}
           </ul>
 
-          <form className="inline-form" onSubmit={onCreateThread}>
-            <label>
-              Start New Thread
-              <input
-                type="email"
-                required
-                value={newThreadEmail}
-                onChange={(event) => setNewThreadEmail(event.target.value)}
-                placeholder="target@example.com"
+          <details className="comms-email-disclosure">
+            <summary>Reach someone else by email</summary>
+            <form className="inline-form" onSubmit={onCreateThread}>
+              <label>
+                Their email address
+                <input
+                  type="email"
+                  required
+                  value={newThreadEmail}
+                  onChange={(event) => setNewThreadEmail(event.target.value)}
+                  placeholder="name@example.com"
+                  disabled={isCreatingThread}
+                />
+              </label>
+              <textarea
+                value={newThreadMessage}
+                onChange={(event) => setNewThreadMessage(event.target.value)}
+                placeholder="Optional first message"
                 disabled={isCreatingThread}
               />
-            </label>
-            <textarea
-              value={newThreadMessage}
-              onChange={(event) => setNewThreadMessage(event.target.value)}
-              placeholder="Optional first message"
-              disabled={isCreatingThread}
-            />
-            <button type="submit" disabled={isCreatingThread}>
-              <Plus className="icon-sm" />
-              {isCreatingThread ? "Creating..." : "Create"}
-            </button>
-          </form>
+              <button type="submit" disabled={isCreatingThread}>
+                <Plus className="icon-sm" />
+                {isCreatingThread ? "Creating..." : "Create"}
+              </button>
+            </form>
+          </details>
         </motion.aside>
 
         <motion.div className="comms-thread" layout={!reduceMotion}>
           <header>
-            <h2>{selectedThread ? `Thread ${selectedThread.id.slice(0, 8)}` : "Select a thread"}</h2>
-            <p>{selectedThread ? `Status: ${selectedThread.status}` : "Pick a thread to read and reply."}</p>
+            <button
+              type="button"
+              className="comms-back"
+              onClick={() => setSelectedThreadId(null)}
+              aria-label="Back to conversations"
+            >
+              <ChevronLeft className="icon-sm" />
+              Back
+            </button>
+            <h2>{selectedThread ? participantName(selectedThread, currentUserId) : "Conversations"}</h2>
+            {selectedThread ? (
+              <span className="comms-status-badge" data-status={selectedThread.status}>
+                {friendlyStatus(selectedThread.status)}
+              </span>
+            ) : (
+              <p>Pick a conversation to read and reply.</p>
+            )}
           </header>
 
           <div className="message-list" aria-live="polite">
@@ -503,6 +592,9 @@ export function CommsWorkspace({
               {messages.length > 0 ? (
                 messages.map((message) => {
                   const mine = message.senderUserId === currentUserId;
+                  const otherName = selectedThread
+                    ? participantName(selectedThread, currentUserId)
+                    : "";
                   return (
                     <motion.article
                       key={message.id}
@@ -519,7 +611,7 @@ export function CommsWorkspace({
                       transition={{ duration: 0.2 }}
                     >
                       <span>
-                        {message.senderType}
+                        {senderLabel(message, currentUserId, otherName)}
                         {message.pending ? " · sending…" : null}
                         {message.failed ? " · not sent" : null}
                       </span>
