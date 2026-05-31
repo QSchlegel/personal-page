@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { jsonError, jsonOk } from "@/lib/http";
 import { unsubscribeByToken } from "@/lib/newsletter";
+import { absoluteUrl } from "@/lib/site";
 
 // Human clicks the link in an email → unsubscribe and show a friendly page.
 export async function GET(request: Request) {
@@ -9,7 +10,8 @@ export async function GET(request: Request) {
   if (token) {
     await unsubscribeByToken(token);
   }
-  return NextResponse.redirect(new URL("/newsletter/unsubscribed", request.url));
+  // Public origin, not request.url (internal 0.0.0.0:8080 behind the proxy).
+  return NextResponse.redirect(absoluteUrl("/newsletter/unsubscribed"));
 }
 
 // RFC 8058 one-click unsubscribe (List-Unsubscribe-Post) — mail clients POST here.
