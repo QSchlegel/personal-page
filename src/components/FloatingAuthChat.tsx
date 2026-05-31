@@ -250,12 +250,15 @@ export function FloatingAuthChat() {
           error?: AuthError;
         };
         if (!response.ok) {
-          // The address already belongs to another account — offer the
-          // verification-link claim path instead.
+          // The address already belongs to another account — this isn't an
+          // error, it's a branch: surface it as a neutral notice and offer the
+          // verification-link claim path instead of a red failure message.
           if (data.error?.code === "EMAIL_TAKEN") {
             setEmailTaken(true);
+            setStatus(null);
+          } else {
+            setStatus(data.error?.message ?? "Could not associate that email.");
           }
-          setStatus(data.error?.message ?? "Could not associate that email.");
           return;
         }
 
@@ -476,19 +479,14 @@ export function FloatingAuthChat() {
                     <span>Also send me an email when a new six-pager is published (optional, double opt-in).</span>
                   </label>
 
-                  {status ? <p className="status-error">{status}</p> : null}
-
                   {emailTaken ? (
-                    <button
-                      type="button"
-                      className="floating-chat-trigger"
-                      onClick={onClaimEmail}
-                      disabled={isAssociating || !associateConsent || !associateEmail.trim()}
-                    >
-                      {isAssociating ? <LoaderCircle className="icon-sm icon-spin" /> : <Mail className="icon-sm" />}
-                      Email me a link to attach this passkey to that account
-                    </button>
+                    <p className="associate-notice">
+                      That email already belongs to an account. If it&apos;s yours — say you&apos;re on a
+                      new device — we&apos;ll email a link to attach this passkey to it instead.
+                    </p>
                   ) : null}
+
+                  {status ? <p className="status-error">{status}</p> : null}
 
                   <div className="associate-actions">
                     <button
@@ -499,14 +497,26 @@ export function FloatingAuthChat() {
                     >
                       Not now
                     </button>
-                    <button
-                      type="submit"
-                      className="floating-chat-trigger"
-                      disabled={isAssociating || !associateConsent || !associateEmail.trim()}
-                    >
-                      {isAssociating ? <LoaderCircle className="icon-sm icon-spin" /> : <Mail className="icon-sm" />}
-                      {isAssociating ? "Sending…" : "Continue"}
-                    </button>
+                    {emailTaken ? (
+                      <button
+                        type="button"
+                        className="floating-chat-trigger"
+                        onClick={onClaimEmail}
+                        disabled={isAssociating || !associateConsent || !associateEmail.trim()}
+                      >
+                        {isAssociating ? <LoaderCircle className="icon-sm icon-spin" /> : <Mail className="icon-sm" />}
+                        {isAssociating ? "Sending…" : "Email me the link"}
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        className="floating-chat-trigger"
+                        disabled={isAssociating || !associateConsent || !associateEmail.trim()}
+                      >
+                        {isAssociating ? <LoaderCircle className="icon-sm icon-spin" /> : <Mail className="icon-sm" />}
+                        {isAssociating ? "Sending…" : "Continue"}
+                      </button>
+                    )}
                   </div>
                 </form>
               )}

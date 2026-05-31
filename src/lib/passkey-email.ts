@@ -41,31 +41,39 @@ interface CreateLinkInput {
   ipAddress?: string | null;
 }
 
+export type CreateLinkResult = { ok: true } | { ok: false; reason: "store" | "send" };
+
 /**
- * Create a pending verification link and email it. Returns ok:false only when
- * the email transport itself fails — the row is written regardless so an
- * expired/undeliverable token simply goes unused.
+ * Create a pending verification link and email it. Returns a discriminated
+ * failure so callers can tell a database/store problem apart from an
+ * email-delivery problem and surface the right message — never a silent
+ * success that strands the user on a "check your inbox" screen.
  */
 export async function createEmailVerificationLink(
   input: CreateLinkInput,
-): Promise<{ ok: boolean }> {
+): Promise<CreateLinkResult> {
   const email = input.email.trim().toLowerCase();
   const token = makeSecret(32);
 
-  await prisma.emailVerificationLink.create({
-    data: {
-      tokenHash: fingerprintSecret(token),
-      kind: input.kind,
-      bootstrapUserId: input.bootstrapUserId,
-      targetUserId: input.targetUserId ?? null,
-      email,
-      newsletterOptIn: input.newsletterOptIn,
-      consentText: CHAT_CONSENT_TEXT,
-      consentVersion: consentVersion(),
-      expiresAt: new Date(Date.now() + LINK_TTL_MS),
-      ipAddress: input.ipAddress ?? null,
-    },
-  });
+  try {
+    await prisma.emailVerificationLink.create({
+      data: {
+        tokenHash: fingerprintSecret(token),
+        kind: input.kind,
+        bootstrapUserId: input.bootstrapUserId,
+        targetUserId: input.targetUserId ?? null,
+        email,
+        newsletterOptIn: input.newsletterOptIn,
+        consentText: CHAT_CONSENT_TEXT,
+        consentVersion: consentVersion(),
+        expiresAt: new Date(Date.now() + LINK_TTL_MS),
+        ipAddress: input.ipAddress ?? null,
+      },
+    });
+  } catch (error) {
+    console.error("[passkey-email] failed to store verification link", error);
+    return { ok: false, reason: "store" };
+  }
 
   const confirmUrl = confirmLinkUrl(token);
   const sent = await sendEmail(
@@ -82,7 +90,7 @@ export async function createEmailVerificationLink(
         },
   );
 
-  return { ok: sent.ok };
+  return sent.ok ? { ok: true } : { ok: false, reason: "send" };
 }
 
 export type ConfirmResult = "associated" | "claimed" | "invalid" | "expired" | "taken";

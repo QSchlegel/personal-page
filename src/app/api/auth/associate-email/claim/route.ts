@@ -83,11 +83,17 @@ export async function POST(request: Request) {
     ipAddress: ip,
   });
   if (!sent.ok) {
-    return jsonError(
-      "EMAIL_SEND_FAILED",
-      "We couldn't send the email. Please try again in a moment.",
-      502,
-    );
+    return sent.reason === "send"
+      ? jsonError(
+          "EMAIL_SEND_FAILED",
+          "We couldn't send the email. Double-check the address and try again.",
+          502,
+        )
+      : jsonError(
+          "LINK_STORE_FAILED",
+          "Something went wrong on our end. Please try again in a moment.",
+          500,
+        );
   }
 
   return jsonOk({ ok: true, verificationSent: true });
