@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { MessageCircle, Plus, Send } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
@@ -24,6 +24,9 @@ const configuredSecureTargets = [
   },
 ] as const;
 
+/** While a thread is open and the tab is visible, refetch every N ms. */
+const MESSAGE_POLL_MS = 5_000;
+
 interface ThreadsResponse {
   threads: ThreadSummary[];
 }
@@ -38,6 +41,11 @@ interface CreateThreadResponse {
   };
 }
 
+interface ApiError {
+  code?: string;
+  message?: string;
+}
+
 interface SecureTarget {
   id: string;
   label: string;
@@ -48,18 +56,34 @@ interface SecureTarget {
 interface CommsWorkspaceProps {
   embedded?: boolean;
   showPageHeading?: boolean;
+  /** Called when the server reports EMAIL_NOT_ASSOCIATED so the parent can route to the associate-email step. */
+  onEmailNotAssociated?: () => void;
 }
 
-export function CommsWorkspace({ embedded = false, showPageHeading = true }: CommsWorkspaceProps) {
+interface PendingMessage extends ThreadMessage {
+  pending?: boolean;
+  failed?: boolean;
+}
+
+function tmpId(): string {
+  return `tmp_${Math.random().toString(36).slice(2, 10)}_${performance.now().toString(36)}`;
+}
+
+export function CommsWorkspace({
+  embedded = false,
+  showPageHeading = true,
+  onEmailNotAssociated,
+}: CommsWorkspaceProps) {
   const { data: session, isPending } = authClient.useSession();
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  const [messages, setMessages] = useState<PendingMessage[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [newThreadEmail, setNewThreadEmail] = useState("");
   const [newThreadMessage, setNewThreadMessage] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
   const [isCreatingThread, setIsCreatingThread] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   const reduceMotion = useReducedMotion();
 
   const signedIn = Boolean(session?.user?.id);
@@ -87,116 +111,153 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
     return targets;
   }, [currentUserEmail]);
 
-  async function loadThreads() {
+  // -- shared response handling -------------------------------------------------
+  const handleAuthError = useCallback(
+    (code: string | undefined, fallback: string): string => {
+      if (code === "EMAIL_NOT_ASSOCIATED") {
+        onEmailNotAssociated?.();
+        return "Associate a real email with your passkey to continue.";
+      }
+      return fallback;
+    },
+    [onEmailNotAssociated],
+  );
+
+  // -- threads list -------------------------------------------------------------
+  const loadThreads = useCallback(async () => {
     const response = await fetch("/api/comms/threads");
     if (!response.ok) {
-      throw new Error(`Unable to load threads (${response.status})`);
+      const payload = (await response.json().catch(() => ({}))) as { error?: ApiError };
+      throw new Error(handleAuthError(payload.error?.code, `Unable to load threads (${response.status})`));
     }
-
     const payload = (await response.json()) as ThreadsResponse;
     setThreads(payload.threads);
     setSelectedThreadId((previous) => previous ?? payload.threads[0]?.id ?? null);
-  }
+  }, [handleAuthError]);
 
-  async function loadMessages(threadId: string) {
-    const response = await fetch(`/api/comms/threads/${threadId}/messages`);
-    if (!response.ok) {
-      throw new Error(`Unable to load messages (${response.status})`);
-    }
-
-    const payload = (await response.json()) as MessagesResponse;
-    setMessages(payload.messages);
-  }
-
-  async function createThreadByEmail(targetUserEmail: string, initialMessage?: string): Promise<string | null> {
-    try {
-      const response = await fetch("/api/comms/threads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetUserEmail,
-          initialMessage,
-        }),
-      });
-
+  // -- messages list (also the polling tick) ------------------------------------
+  const loadMessages = useCallback(
+    async (threadId: string, options: { silent?: boolean } = {}) => {
+      const response = await fetch(`/api/comms/threads/${threadId}/messages`);
       if (!response.ok) {
-        const payload = (await response.json()) as { error?: { message?: string } };
-        setStatus(payload.error?.message ?? "Unable to create thread.");
-        return null;
+        const payload = (await response.json().catch(() => ({}))) as { error?: ApiError };
+        const message = handleAuthError(payload.error?.code, `Unable to load messages (${response.status})`);
+        if (!options.silent) {
+          setStatus(message);
+        }
+        return;
       }
+      const payload = (await response.json()) as MessagesResponse;
+      // Preserve any pending-but-not-yet-acknowledged outgoing messages so
+      // the user's draft doesn't visibly disappear on the next poll.
+      setMessages((prev) => {
+        const pendingTail = prev.filter((m) => m.pending && !payload.messages.some((s) => s.id === m.id));
+        return [...payload.messages, ...pendingTail];
+      });
+    },
+    [handleAuthError],
+  );
 
-      const payload = (await response.json()) as CreateThreadResponse;
-      const createdThreadId = payload.thread.id;
-
-      await loadThreads();
-      setSelectedThreadId(createdThreadId);
-      await loadMessages(createdThreadId);
-
-      return createdThreadId;
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Unable to create thread.");
-      return null;
-    }
-  }
-
+  // -- effect: initial threads fetch + thread-list refresh on resetKey ---------
   useEffect(() => {
     if (!signedIn) return;
-
     let cancelled = false;
-
     (async () => {
       try {
-        const response = await fetch("/api/comms/threads");
-        if (!response.ok) {
-          throw new Error(`Unable to load threads (${response.status})`);
-        }
-
-        const payload = (await response.json()) as ThreadsResponse;
-        if (cancelled) return;
-        setThreads(payload.threads);
-        setSelectedThreadId((previous) => previous ?? payload.threads[0]?.id ?? null);
+        await loadThreads();
       } catch (error) {
-        if (cancelled) return;
-        setStatus(error instanceof Error ? error.message : "Unable to load threads.");
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Unable to load threads.");
+        }
       }
     })();
-
     return () => {
       cancelled = true;
     };
-  }, [signedIn]);
+  }, [signedIn, loadThreads]);
 
+  // -- effect: poll messages while a thread is open + tab visible --------------
   useEffect(() => {
-    if (!selectedThreadId || !signedIn) {
-      return;
-    }
+    if (!selectedThreadId || !signedIn) return;
 
     let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
 
-    (async () => {
+    const tick = () => {
+      if (cancelled) return;
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+      void loadMessages(selectedThreadId, { silent: true });
+    };
+
+    // initial load — surface errors
+    void (async () => {
       try {
-        const response = await fetch(`/api/comms/threads/${selectedThreadId}/messages`);
-        if (!response.ok) {
-          throw new Error(`Unable to load messages (${response.status})`);
-        }
-
-        const payload = (await response.json()) as MessagesResponse;
-        if (cancelled) return;
-        setMessages(payload.messages);
+        await loadMessages(selectedThreadId);
       } catch (error) {
-        if (cancelled) return;
-        setStatus(error instanceof Error ? error.message : "Unable to load messages.");
+        if (!cancelled) {
+          setStatus(error instanceof Error ? error.message : "Unable to load messages.");
+        }
       }
     })();
 
+    timer = setInterval(tick, MESSAGE_POLL_MS);
+    const onVisibility = () => {
+      // Catch up immediately when the tab regains focus.
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        tick();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       cancelled = true;
+      if (timer) clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [selectedThreadId, signedIn]);
+  }, [selectedThreadId, signedIn, loadMessages]);
 
   const selectedThread = useMemo(
     () => threads.find((thread) => thread.id === selectedThreadId) ?? null,
     [threads, selectedThreadId],
+  );
+
+  // -- thread create -----------------------------------------------------------
+  const createThreadByEmail = useCallback(
+    async (targetUserEmail: string, initialMessage?: string): Promise<string | null> => {
+      try {
+        const response = await fetch("/api/comms/threads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetUserEmail, initialMessage }),
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: ApiError };
+          const code = payload.error?.code;
+          if (code === "USER_NOT_FOUND") {
+            setStatus(
+              `No account exists for ${targetUserEmail}. They need to register a passkey first.`,
+            );
+          } else {
+            setStatus(handleAuthError(code, payload.error?.message ?? "Unable to create thread."));
+          }
+          return null;
+        }
+
+        const payload = (await response.json()) as CreateThreadResponse;
+        const createdThreadId = payload.thread.id;
+        await loadThreads();
+        setSelectedThreadId(createdThreadId);
+        await loadMessages(createdThreadId);
+        return createdThreadId;
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : "Unable to create thread.");
+        return null;
+      }
+    },
+    [handleAuthError, loadMessages, loadThreads],
   );
 
   async function onCreateThread(event: FormEvent<HTMLFormElement>) {
@@ -211,6 +272,7 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
     setIsCreatingThread(false);
 
     if (!createdThreadId) {
+      // Keep what the user typed so they can correct + retry.
       return;
     }
 
@@ -222,42 +284,74 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
     if (isCreatingThread) {
       return;
     }
-
     setStatus(null);
     setIsCreatingThread(true);
     const createdThreadId = await createThreadByEmail(target.email);
     setIsCreatingThread(false);
-
-    if (!createdThreadId) {
-      return;
+    if (createdThreadId) {
+      setStatus(`Secure chat with ${target.label} is ready.`);
     }
-
-    setStatus(`Secure chat with ${target.label} is ready.`);
   }
 
+  // -- optimistic send ---------------------------------------------------------
   async function onSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus(null);
 
-    if (!selectedThreadId || !draftMessage.trim()) {
+    const trimmed = draftMessage.trim();
+    if (!selectedThreadId || !trimmed || isSendingMessage) {
       return;
     }
 
-    const response = await fetch(`/api/comms/threads/${selectedThreadId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: draftMessage }),
-    });
+    setIsSendingMessage(true);
 
-    if (!response.ok) {
-      const payload = (await response.json()) as { error?: { message?: string } };
-      setStatus(payload.error?.message ?? "Unable to send message.");
-      return;
+    // Optimistically append the message; reconcile when the server replies.
+    const optimistic: PendingMessage = {
+      id: tmpId(),
+      threadId: selectedThreadId,
+      senderType: "USER",
+      senderUserId: currentUserId,
+      senderBotId: null,
+      content: trimmed,
+      moderated: false,
+      createdAt: new Date().toISOString(),
+      pending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
+    try {
+      const response = await fetch(`/api/comms/threads/${selectedThreadId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: trimmed }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: ApiError };
+        // Keep the draft so the user can retry without re-typing.
+        setMessages((prev) =>
+          prev.map((m) => (m.id === optimistic.id ? { ...m, pending: false, failed: true } : m)),
+        );
+        setStatus(handleAuthError(payload.error?.code, payload.error?.message ?? "Unable to send message."));
+        return;
+      }
+
+      // Clear draft only AFTER the server accepted the message.
+      setDraftMessage("");
+      // Drop the placeholder BEFORE refetch — the server returns the real row
+      // with its own id, so loadMessages's preservePending filter would keep
+      // the tmp_* row forever (visible as a permanent "sending…" duplicate).
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      await loadMessages(selectedThreadId, { silent: true });
+      void loadThreads();
+    } catch (error) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimistic.id ? { ...m, pending: false, failed: true } : m)),
+      );
+      setStatus(error instanceof Error ? error.message : "Unable to send message.");
+    } finally {
+      setIsSendingMessage(false);
     }
-
-    setDraftMessage("");
-    await loadMessages(selectedThreadId);
-    await loadThreads();
   }
 
   if (isPending) {
@@ -412,12 +506,23 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
                   return (
                     <motion.article
                       key={message.id}
-                      className={mine ? "message mine" : "message"}
+                      className={[
+                        "message",
+                        mine ? "mine" : "",
+                        message.pending ? "pending" : "",
+                        message.failed ? "failed" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                       initial={false}
                       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <span>{message.senderType}</span>
+                      <span>
+                        {message.senderType}
+                        {message.pending ? " · sending…" : null}
+                        {message.failed ? " · not sent" : null}
+                      </span>
                       <p>{message.content}</p>
                       <time>{new Date(message.createdAt).toLocaleString("en-US")}</time>
                     </motion.article>
@@ -443,10 +548,11 @@ export function CommsWorkspace({ embedded = false, showPageHeading = true }: Com
                 value={draftMessage}
                 onChange={(event) => setDraftMessage(event.target.value)}
                 placeholder="Write a message"
+                disabled={isSendingMessage}
               />
-              <button type="submit">
+              <button type="submit" disabled={isSendingMessage}>
                 <Send className="icon-sm" />
-                Send
+                {isSendingMessage ? "Sending…" : "Send"}
               </button>
             </form>
           ) : null}
