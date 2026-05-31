@@ -3,7 +3,6 @@ import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
 import { requireUser } from "@/lib/auth-helpers";
 import { jsonError, jsonOk } from "@/lib/http";
-import { unsubscribeByToken } from "@/lib/newsletter";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { getRequestIp } from "@/lib/security";
@@ -16,18 +15,24 @@ const schema = z.object({
  * DSGVO Art. 17 — right to erasure.
  *
  * Requires the caller to type their email as a confirmation token (same
- * shape as GitHub's destructive flows). On confirm:
+ * shape as GitHub's destructive flows). On confirm, in this order:
  *
- *   1. Unsubscribe the corresponding Subscriber row, if any, using the
- *      existing token-based path so the audit trail matches the public
- *      one-click unsubscribe.
- *   2. Audit-log the deletion BEFORE we tear down the user — the User row
- *      still exists so the actor link is preserved on the AuditLog row.
- *   3. `prisma.user.delete` — Session, Account, Passkey, ThreadParticipant,
- *      Message.senderUserId (SetNull), BotIdentity, BotApiKey, BotEvent
- *      (recipient + generatedBy), UserProfile, AuditLog.actorUserId
- *      (SetNull) all cascade via the existing `onDelete` clauses in
- *      schema.prisma — no extra cleanup needed.
+ *   1. Hard-delete every private chat Thread the user participated in
+ *      (Message + ThreadParticipant + BotEvent cascade from Thread). The
+ *      schema's `Message.senderUserId onDelete: SetNull` would otherwise
+ *      keep the user's message *content* visible to the admin inbox —
+ *      not acceptable for an erasure request.
+ *   2. Hard-delete the matching Subscriber row (NewsletterSend cascades).
+ *      The public unsubscribe path keeps the row for accountability, but
+ *      this is the user's own erasure request — email + IP + consent
+ *      text + version must go.
+ *   3. Hard-delete any DownloadLead rows for this email (no FK to User).
+ *   4. Audit-log the deletion BEFORE we tear down the user — the row
+ *      still exists so the actorUserId column is populated.
+ *   5. `prisma.user.delete` — Session, Account, Passkey, ThreadParticipant
+ *      (residual), BotIdentity, BotApiKey, BotEvent (recipient), and
+ *      UserProfile cascade via existing `onDelete: Cascade`. AuditLog
+ *      actorUserId is SetNull, so the entry from step 4 survives.
  *
  * Client signs the user out + redirects after a 2xx.
  */
@@ -62,17 +67,43 @@ export async function POST(request: Request) {
   const userId = auth.session.user.id;
   const email = auth.session.user.email.toLowerCase();
 
-  // 1. Unsubscribe newsletter (if any) — DSGVO Art. 17 covers marketing data
-  //    even though Subscriber has no FK to User.
+  // Collect what we're about to delete BEFORE we do it, for the audit log.
+  const participantRows = await prisma.threadParticipant.findMany({
+    where: { userId },
+    select: { threadId: true },
+  });
+  const participantThreadIds = participantRows.map((r) => r.threadId);
+
+  const createdThreads = await prisma.thread.findMany({
+    where: { createdByUserId: userId, id: { notIn: participantThreadIds } },
+    select: { id: true },
+  });
+  const threadIdsToDelete = Array.from(
+    new Set([...participantThreadIds, ...createdThreads.map((t) => t.id)]),
+  );
+
   const subscriber = await prisma.subscriber.findUnique({
     where: { email },
-    select: { unsubscribeToken: true, status: true },
+    select: { id: true, status: true },
   });
-  if (subscriber && subscriber.status !== "UNSUBSCRIBED") {
-    await unsubscribeByToken(subscriber.unsubscribeToken).catch(() => undefined);
+
+  // 1. Tear down chat content. Thread cascade handles Message,
+  //    ThreadParticipant, BotEvent (via thread), and NewsletterSend is
+  //    unrelated. Defensive deleteMany for any orphan messages.
+  if (threadIdsToDelete.length > 0) {
+    await prisma.thread.deleteMany({ where: { id: { in: threadIdsToDelete } } });
+  }
+  await prisma.message.deleteMany({ where: { senderUserId: userId } });
+
+  // 2. Hard-delete the Subscriber row (NewsletterSend cascades).
+  if (subscriber) {
+    await prisma.subscriber.delete({ where: { id: subscriber.id } });
   }
 
-  // 2. Audit log BEFORE the user row goes away so the actorUserId column
+  // 3. Hard-delete any DownloadLead rows for this email (no FK to User).
+  const downloadLeads = await prisma.downloadLead.deleteMany({ where: { email } });
+
+  // 4. Audit log BEFORE the user row goes away so the actorUserId column
   //    keeps a reference (it's onDelete: SetNull on AuditLog, so the row
   //    survives the cascade either way, but populated is nicer).
   await writeAuditLog({
@@ -84,15 +115,17 @@ export async function POST(request: Request) {
     userAgent: request.headers.get("user-agent"),
     metadata: {
       email,
+      threadsDeleted: threadIdsToDelete.length,
       hadSubscriber: Boolean(subscriber),
-      subscriberAlreadyUnsubscribed: subscriber?.status === "UNSUBSCRIBED",
+      subscriberStatus: subscriber?.status ?? null,
+      downloadLeadsDeleted: downloadLeads.count,
     },
   });
 
-  // 3. Cascade-delete via the User row. The schema's onDelete clauses tear
+  // 5. Cascade-delete via the User row. The schema's onDelete clauses tear
   //    down Session, Account, Passkey, ThreadParticipant, BotIdentity,
-  //    BotApiKey, BotEvent, UserProfile, etc. AuditLog.actorUserId is
-  //    SetNull, so the history we wrote above is preserved.
+  //    BotApiKey, BotEvent (recipient), UserProfile, etc. AuditLog
+  //    actorUserId is SetNull, so the history we wrote above is preserved.
   await prisma.user.delete({ where: { id: userId } });
 
   return jsonOk({ ok: true }, 200);
