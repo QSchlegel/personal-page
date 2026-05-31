@@ -461,7 +461,8 @@ export function CommsWorkspace({
             <div className="secure-targets">
               <h3>Get in touch</h3>
               <p className="status-muted">
-                Pick who you&apos;d like to reach. Threads are private and secured by your passkey.
+                Pick who you&apos;d like to reach. Threads are private and secured by your passkey. Quirin reads these
+                personally — replies land right here, and we&apos;ll email you when he answers.
               </p>
               <div className="secure-targets-grid">
                 {secureTargets.map((target, index) => {

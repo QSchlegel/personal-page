@@ -130,6 +130,28 @@ export function PasskeyClaimEmail({ confirmUrl }: { confirmUrl: string }) {
   );
 }
 
+export function SecureChatReplyEmail({ chatUrl }: { chatUrl: string }) {
+  return (
+    <Shell preview="You have a new reply in Secure Chat">
+      <Text style={eyebrow}>Secure chat</Text>
+      <Heading style={heading}>You have a new reply</Heading>
+      <Text style={text}>
+        There&apos;s a new message waiting in your secure chat conversation. Sign in with your passkey to read it and
+        reply — your conversation stays private and end-to-end gated by your passkey.
+      </Text>
+      <Section style={{ margin: "8px 0 4px" }}>
+        <Button href={chatUrl} style={button}>
+          Open Secure Chat
+        </Button>
+      </Section>
+      <Text style={small}>
+        You&apos;re receiving this because you started a secure chat conversation on quirinschlegel.com. We only email you
+        when there&apos;s a reply waiting — never marketing.
+      </Text>
+    </Shell>
+  );
+}
+
 export function BroadcastEmail({
   paragraphs,
   articleUrl,
