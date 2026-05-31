@@ -57,19 +57,17 @@ ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
 # Migration startup:
-# - One-time `resolve --rolled-back …` cleanups for migrations that have been
-#   stuck in FAILED state on the prod database. Each harmlessly errors on
-#   every other env where the migration is not in failed state (hence
-#   `|| true`). After the failed row is gone, `migrate deploy` re-applies the
-#   (now idempotent / repaired) migration in order.
-#     - 2_add_newsletter: failed because the DeliveryStatus enum from 0_init
-#       had drifted off the prod schema (fixed in PR #22).
-#     - 4_repair_chat_schema_drift: failed because one of the chat tables
-#       existed on prod with the wrong columns and `CREATE INDEX` couldn't
-#       find a column it expected. The migration was rewritten to DROP the
-#       chat tables CASCADE before recreating them, which is safe because no
-#       chat data has ever been written on prod.
-# - `migrate deploy` then applies the migrations in order.
-# - The server starts regardless of migration outcome so the runtime is
-#   self-recovering on flaky DB starts.
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate resolve --rolled-back 2_add_newsletter 2>/dev/null || true; node node_modules/prisma/build/index.js migrate resolve --rolled-back 4_repair_chat_schema_drift 2>/dev/null || true; node node_modules/prisma/build/index.js migrate deploy; node server.js"]
+# - `migrate deploy` applies any pending migrations in order. All migrations
+#   are idempotent (guarded CREATE … IF NOT EXISTS / DO-block constraints), so
+#   re-running is a no-op on an up-to-date schema.
+# - The earlier one-time `migrate resolve --rolled-back 2/4` cleanups were
+#   REMOVED on purpose. They ran on every boot and re-marked already-applied
+#   migrations as rolled-back — churn that drifts the migration history, and
+#   (critically) 4_repair_chat_schema_drift DROPs the chat tables CASCADE, so
+#   re-applying it would wipe live secure-chat data. The prod history is now
+#   clean (`migrate status` → up to date); these hacks are no longer needed.
+# - `&&` (not `;`) before `node server.js`: a failed/incomplete migration must
+#   fail the deploy LOUDLY rather than booting the app against a broken schema
+#   and serving runtime 500s (e.g. the missing-UserProfile incident). Railway's
+#   ON_FAILURE restart policy retries, so a transient DB hiccup still recovers.
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
