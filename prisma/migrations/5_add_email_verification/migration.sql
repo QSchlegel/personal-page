@@ -32,4 +32,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS "EmailVerificationLink_tokenHash_key" ON "publ
 CREATE INDEX IF NOT EXISTS "EmailVerificationLink_bootstrapUserId_idx" ON "public"."EmailVerificationLink"("bootstrapUserId");
 
 -- CreateIndex
+CREATE INDEX IF NOT EXISTS "EmailVerificationLink_targetUserId_idx" ON "public"."EmailVerificationLink"("targetUserId");
+
+-- CreateIndex
 CREATE INDEX IF NOT EXISTS "EmailVerificationLink_expiresAt_idx" ON "public"."EmailVerificationLink"("expiresAt");
+
+-- AddForeignKey: cascade from the bootstrap user (deleted on the CLAIM path).
+DO $$ BEGIN
+    ALTER TABLE "public"."EmailVerificationLink"
+        ADD CONSTRAINT "EmailVerificationLink_bootstrapUserId_fkey"
+        FOREIGN KEY ("bootstrapUserId") REFERENCES "public"."User"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey: null the reference to the long-lived target account if removed.
+DO $$ BEGIN
+    ALTER TABLE "public"."EmailVerificationLink"
+        ADD CONSTRAINT "EmailVerificationLink_targetUserId_fkey"
+        FOREIGN KEY ("targetUserId") REFERENCES "public"."User"("id")
+        ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

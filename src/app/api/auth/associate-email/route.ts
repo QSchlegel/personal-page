@@ -83,14 +83,22 @@ export async function POST(request: Request) {
   }
 
   // Send the verification link. The email is only written to the user record
-  // when the link is clicked.
-  await createEmailVerificationLink({
+  // when the link is clicked. If delivery fails, surface a retryable error
+  // rather than telling the user to check an inbox that received nothing.
+  const sent = await createEmailVerificationLink({
     kind: "ASSOCIATE",
     bootstrapUserId: currentUser.id,
     email: normalized,
     newsletterOptIn: body.newsletterOptIn,
     ipAddress: ip,
   });
+  if (!sent.ok) {
+    return jsonError(
+      "EMAIL_SEND_FAILED",
+      "We couldn't send the confirmation email. Please try again in a moment.",
+      502,
+    );
+  }
 
   return jsonOk({ ok: true, verificationSent: true, email: normalized });
 }

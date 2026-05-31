@@ -47,6 +47,8 @@ model User {
   accounts            Account[]
   sessions            Session[]
   passkeys            Passkey[]
+  emailVerificationLinksBootstrap EmailVerificationLink[] @relation("EmailVerificationBootstrap")
+  emailVerificationLinksTarget    EmailVerificationLink[] @relation("EmailVerificationTarget")
   profile             UserProfile?
   threadParticipants  ThreadParticipant[]
   messagesAsUser      Message[]           @relation("MessageSenderUser")
@@ -335,7 +337,15 @@ model EmailVerificationLink {
   ipAddress       String?
   createdAt       DateTime              @default(now())
 
+  // Cascade from the bootstrap user so a consumed/abandoned link (and its
+  // email/IP/consent data) is cleaned up when that user is deleted — notably
+  // on the CLAIM path, which deletes the bootstrap user. The target account is
+  // long-lived; null its reference rather than dropping the row.
+  bootstrapUser User  @relation("EmailVerificationBootstrap", fields: [bootstrapUserId], references: [id], onDelete: Cascade)
+  targetUser    User? @relation("EmailVerificationTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
   @@index([bootstrapUserId])
+  @@index([targetUserId])
   @@index([expiresAt])
 }
 

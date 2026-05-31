@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     );
   }
 
-  await createEmailVerificationLink({
+  const sent = await createEmailVerificationLink({
     kind: "CLAIM",
     bootstrapUserId: currentUser.id,
     targetUserId: target.id,
@@ -82,6 +82,13 @@ export async function POST(request: Request) {
     newsletterOptIn: body.newsletterOptIn,
     ipAddress: ip,
   });
+  if (!sent.ok) {
+    return jsonError(
+      "EMAIL_SEND_FAILED",
+      "We couldn't send the email. Please try again in a moment.",
+      502,
+    );
+  }
 
   return jsonOk({ ok: true, verificationSent: true });
 }
