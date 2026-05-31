@@ -86,6 +86,50 @@ export function DoubleOptInEmail({ confirmUrl }: { confirmUrl: string }) {
   );
 }
 
+export function AssociateEmailVerifyEmail({ confirmUrl }: { confirmUrl: string }) {
+  return (
+    <Shell preview="Confirm your email to enable secure chat">
+      <Text style={eyebrow}>Secure chat</Text>
+      <Heading style={heading}>Confirm your email</Heading>
+      <Text style={text}>
+        You registered a passkey and asked to link this address so other people can reach you in secure chat. Confirm to
+        finish — your email is only stored once you click below.
+      </Text>
+      <Section style={{ margin: "8px 0 4px" }}>
+        <Button href={confirmUrl} style={button}>
+          Confirm my email
+        </Button>
+      </Section>
+      <Text style={small}>
+        This link expires in 30 minutes. If you didn&apos;t request this, simply ignore this email — nothing is linked
+        until you confirm.
+      </Text>
+    </Shell>
+  );
+}
+
+export function PasskeyClaimEmail({ confirmUrl }: { confirmUrl: string }) {
+  return (
+    <Shell preview="Attach this passkey to your existing account">
+      <Text style={eyebrow}>Secure chat</Text>
+      <Heading style={heading}>Attach a new passkey to your account</Heading>
+      <Text style={text}>
+        Someone registered a new passkey and asked to attach it to the account that uses this email address. If that was
+        you — for example, you got a new device — confirm below and you&apos;ll be able to sign in with the new passkey.
+      </Text>
+      <Section style={{ margin: "8px 0 4px" }}>
+        <Button href={confirmUrl} style={button}>
+          Attach the passkey
+        </Button>
+      </Section>
+      <Text style={small}>
+        This link expires in 30 minutes. If this wasn&apos;t you, ignore this email — your account stays untouched and
+        the new passkey is never attached.
+      </Text>
+    </Shell>
+  );
+}
+
 export function BroadcastEmail({
   paragraphs,
   articleUrl,

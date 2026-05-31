@@ -2491,6 +2491,12 @@ p {
   color: var(--ink-1);
 }
 
+.floating-chat-associate .associate-sent {
+  margin: 0;
+  color: var(--ink-1);
+  line-height: 1.55;
+}
+
 .floating-chat-associate .associate-form input[type="email"] {
   padding: 0.55rem 0.74rem;
   border: 1px solid var(--panel-border);

@@ -9,22 +9,13 @@ import { checkRateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { getRequestIp } from "@/lib/security";
 
 /**
- * Begin associating a real email with a freshly-registered passkey identity.
+ * Attach the freshly-registered passkey to an EXISTING account that already
+ * owns the typed email — the recovery path for "I got a new device". We email
+ * that address a CLAIM verification link; clicking it moves this passkey onto
+ * the existing account and discards the bootstrap user (see lib/passkey-email).
  *
- * Just after `addPasskey` succeeds the user's `User.email` is a synthetic
- * `passkey-<uuid>@local.invalid` placeholder. They can't be addressed by
- * other users in chat until this association runs. We require DSGVO consent
- * for processing (Art. 6(1)(a) GDPR) and offer — decoupled, per the
- * Kopplungsverbot — an optional newsletter sign-up.
- *
- * Rather than trust the typed address, we email a single-use verification link
- * and only write the email once it's clicked (see lib/passkey-email.ts).
- *
- * - Already-associated user: 409.
- * - Email belongs to another user: 409 EMAIL_TAKEN. The client surfaces a
- *   "claim" button that posts to /associate-email/claim to attach this passkey
- *   to that account via its own verification link.
- * - Otherwise: send an ASSOCIATE verification link to the address.
+ * Only valid when the email genuinely belongs to another account (the client
+ * reaches here after the /associate-email route returned EMAIL_TAKEN).
  */
 const schema = z.object({
   email: z.string().email().max(254),
@@ -39,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   const ip = getRequestIp(request.headers);
-  const rate = checkRateLimit(`associate-email:${ip ?? auth.session.user.id}`, 5, 60_000);
+  const rate = checkRateLimit(`associate-email-claim:${ip ?? auth.session.user.id}`, 5, 60_000);
   if (!rate.allowed) {
     return jsonError("RATE_LIMITED", "Too many requests. Please try again shortly.", 429);
   }
@@ -59,7 +50,8 @@ export async function POST(request: Request) {
   const currentUser = auth.session.user;
   const normalized = body.email.trim().toLowerCase();
 
-  // Guard: already done.
+  // Only a bootstrap (freshly-registered) identity can claim into another
+  // account — an already-associated user has nothing to merge.
   if (!isBootstrapEmail(currentUser.email)) {
     return jsonError(
       "ALREADY_ASSOCIATED",
@@ -68,29 +60,28 @@ export async function POST(request: Request) {
     );
   }
 
-  // Guard: email belongs to someone else. The client uses EMAIL_TAKEN to offer
-  // the verification-link claim flow (POST /associate-email/claim).
-  const existing = await prisma.user.findUnique({
+  const target = await prisma.user.findUnique({
     where: { email: normalized },
     select: { id: true },
   });
-  if (existing && existing.id !== currentUser.id) {
+  if (!target || target.id === currentUser.id) {
+    // No existing account owns this address — there's nothing to attach to.
+    // The caller should use the normal /associate-email flow instead.
     return jsonError(
-      "EMAIL_TAKEN",
-      "That email already belongs to another account. Sign in with its passkey instead.",
-      409,
+      "NO_TARGET",
+      "No existing account uses that email. Use the normal email confirmation instead.",
+      400,
     );
   }
 
-  // Send the verification link. The email is only written to the user record
-  // when the link is clicked.
   await createEmailVerificationLink({
-    kind: "ASSOCIATE",
+    kind: "CLAIM",
     bootstrapUserId: currentUser.id,
+    targetUserId: target.id,
     email: normalized,
     newsletterOptIn: body.newsletterOptIn,
     ipAddress: ip,
   });
 
-  return jsonOk({ ok: true, verificationSent: true, email: normalized });
+  return jsonOk({ ok: true, verificationSent: true });
 }

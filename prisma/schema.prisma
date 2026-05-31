@@ -310,6 +310,35 @@ model AuditLog {
   @@index([createdAt])
 }
 
+enum EmailVerificationKind {
+  ASSOCIATE
+  CLAIM
+}
+
+// A pending email-verification link issued during the passkey "associate your
+// email" flow. The raw token is emailed; only its sha256 hash is stored here.
+// ASSOCIATE links attach a verified email to the freshly-registered bootstrap
+// user; CLAIM links move that user's passkey onto an existing account that
+// already owns the address (and then delete the bootstrap user).
+model EmailVerificationLink {
+  id              String                @id @default(cuid())
+  tokenHash       String                @unique
+  kind            EmailVerificationKind
+  bootstrapUserId String
+  targetUserId    String?
+  email           String
+  newsletterOptIn Boolean               @default(false)
+  consentText     String
+  consentVersion  String
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  ipAddress       String?
+  createdAt       DateTime              @default(now())
+
+  @@index([bootstrapUserId])
+  @@index([expiresAt])
+}
+
 enum SubscriberStatus {
   PENDING
   CONFIRMED
