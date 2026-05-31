@@ -18,6 +18,7 @@
     "@better-auth/passkey": "^1.6.12",
     "@prisma/client": "^6.16.2",
     "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.6",
     "@react-three/fiber": "^9.5.0",
     "better-auth": "^1.6.12",
     "framer-motion": "^12.34.5",

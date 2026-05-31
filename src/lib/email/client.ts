@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { render } from "@react-email/render";
 import { Resend } from "resend";
 
 import { env } from "@/lib/env";
@@ -35,15 +36,19 @@ export async function sendEmail(input: SendEmailInput): Promise<SendResult> {
     return { ok: false, error: "Email delivery is not configured." };
   }
 
-  // resend.emails.send can throw (not just return an error) — e.g. while
-  // rendering the React template. Catch it so a delivery problem degrades to a
-  // handled failure instead of crashing the request with a 500.
+  // Render the template to HTML ourselves rather than passing `react` to
+  // Resend. Resend would dynamically `import("@react-email/render")` at
+  // runtime, which isn't resolvable from its own location once the package is
+  // externalized — so we render here (render is a declared dependency, kept
+  // unbundled via serverExternalPackages) and hand Resend plain HTML. The
+  // try/catch keeps any render/transport failure from crashing the request.
   try {
+    const html = await render(input.react);
     const { data, error } = await resend.emails.send({
       from: input.from ?? env.EMAIL_FROM,
       to: input.to,
       subject: input.subject,
-      react: input.react,
+      html,
       headers: input.headers,
       replyTo: input.replyTo,
     });
