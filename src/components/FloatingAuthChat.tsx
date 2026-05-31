@@ -40,6 +40,12 @@ export function FloatingAuthChat() {
   const [associateConsent, setAssociateConsent] = useState(false);
   const [associateNewsletter, setAssociateNewsletter] = useState(false);
   const [isAssociating, setIsAssociating] = useState(false);
+  // When the typed address already belongs to another account we surface a
+  // "claim" button that attaches this passkey to that account via an email link.
+  const [emailTaken, setEmailTaken] = useState(false);
+  // After a verification link is dispatched we replace the form with a
+  // check-your-inbox confirmation (the email isn't linked until they click it).
+  const [sentMessage, setSentMessage] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
 
   const isSignedIn = Boolean(session?.user?.id);
@@ -211,6 +217,8 @@ export function FloatingAuthChat() {
   const onCancel = useCallback(() => {
     setStep("idle");
     setStatus(null);
+    setEmailTaken(false);
+    setSentMessage(null);
   }, []);
 
   const onAssociateEmail = useCallback(
@@ -238,34 +246,73 @@ export function FloatingAuthChat() {
         });
         const data = (await response.json().catch(() => ({}))) as {
           ok?: boolean;
-          newsletterOptInSent?: boolean;
+          verificationSent?: boolean;
           error?: AuthError;
         };
         if (!response.ok) {
+          // The address already belongs to another account — offer the
+          // verification-link claim path instead.
+          if (data.error?.code === "EMAIL_TAKEN") {
+            setEmailTaken(true);
+          }
           setStatus(data.error?.message ?? "Could not associate that email.");
           return;
         }
 
-        // Force the session cache to refetch so the new email is visible
-        // before we hand off to CommsWorkspace (which reads currentUserEmail
-        // for the secure-targets filter).
-        authClient.$store.notify("$sessionSignal");
-
-        const tail = data.newsletterOptInSent
-          ? " Check your inbox to confirm the newsletter."
-          : "";
-        openChat(`Email associated.${tail}`);
-        setAssociateEmail("");
-        setAssociateConsent(false);
-        setAssociateNewsletter(false);
+        // Nothing is linked until the emailed link is clicked — show a
+        // check-your-inbox confirmation rather than opening the chat.
+        setSentMessage(
+          `We sent a confirmation link to ${email}. Click it to finish linking your email, then reopen Secure Chat.`,
+        );
       } catch (error) {
         setStatus(error instanceof Error ? error.message : "Network error.");
       } finally {
         setIsAssociating(false);
       }
     },
-    [associateEmail, associateConsent, associateNewsletter, isAssociating, openChat],
+    [associateEmail, associateConsent, associateNewsletter, isAssociating],
   );
+
+  const onClaimEmail = useCallback(async () => {
+    if (isAssociating) return;
+    setStatus(null);
+
+    const email = associateEmail.trim().toLowerCase();
+    if (!email || !associateConsent) {
+      setStatus("Please enter your email and agree to the data-processing notice.");
+      return;
+    }
+
+    setIsAssociating(true);
+    try {
+      const response = await fetch("/api/auth/associate-email/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          consent: true,
+          newsletterOptIn: associateNewsletter,
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        verificationSent?: boolean;
+        error?: AuthError;
+      };
+      if (!response.ok) {
+        setStatus(data.error?.message ?? "Could not send the link.");
+        return;
+      }
+
+      setSentMessage(
+        `We sent a link to ${email}. Click it to attach this passkey to that account, then reopen Secure Chat and choose Sign In.`,
+      );
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Network error.");
+    } finally {
+      setIsAssociating(false);
+    }
+  }, [associateEmail, associateConsent, associateNewsletter, isAssociating]);
 
   // If the modal is open but the session has reverted to a bootstrap state
   // (e.g. server returned EMAIL_NOT_ASSOCIATED), bounce back to the
@@ -371,72 +418,98 @@ export function FloatingAuthChat() {
                 </h2>
                 <p>
                   Your passkey is registered. Now tell us which email represents you so other
-                  people can reach you in secure chat. If the address is already on the
-                  newsletter list, we&apos;ll link it silently — otherwise we&apos;ll ask you to
-                  confirm.
+                  people can reach you in secure chat. We&apos;ll send a link to confirm you own
+                  the address — nothing is linked until you click it.
                 </p>
               </header>
 
-              <form className="associate-form" onSubmit={onAssociateEmail}>
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={associateEmail}
-                    onChange={(event) => setAssociateEmail(event.target.value)}
-                    placeholder="you@example.com"
-                    disabled={isAssociating}
-                  />
-                </label>
-                <label className="associate-consent">
-                  <input
-                    type="checkbox"
-                    required
-                    checked={associateConsent}
-                    onChange={(event) => setAssociateConsent(event.target.checked)}
-                    disabled={isAssociating}
-                  />
-                  <span>
-                    I agree my email may be stored and processed to enable secure chat. See the{" "}
-                    <a href="/privacy" target="_blank" rel="noreferrer">
-                      privacy policy
-                    </a>
-                    .
-                  </span>
-                </label>
-                <label className="associate-consent">
-                  <input
-                    type="checkbox"
-                    checked={associateNewsletter}
-                    onChange={(event) => setAssociateNewsletter(event.target.checked)}
-                    disabled={isAssociating}
-                  />
-                  <span>Also send me an email when a new six-pager is published (optional, double opt-in).</span>
-                </label>
-
-                {status ? <p className="status-error">{status}</p> : null}
-
-                <div className="associate-actions">
-                  <button
-                    type="button"
-                    className="floating-chat-trigger floating-chat-ghost"
-                    onClick={onCancel}
-                    disabled={isAssociating}
-                  >
-                    Not now
-                  </button>
-                  <button
-                    type="submit"
-                    className="floating-chat-trigger"
-                    disabled={isAssociating || !associateConsent || !associateEmail.trim()}
-                  >
-                    {isAssociating ? <LoaderCircle className="icon-sm icon-spin" /> : <Mail className="icon-sm" />}
-                    {isAssociating ? "Associating…" : "Continue"}
-                  </button>
+              {sentMessage ? (
+                <div className="associate-form">
+                  <p className="associate-sent">{sentMessage}</p>
+                  <div className="associate-actions">
+                    <button type="button" className="floating-chat-trigger" onClick={onCancel}>
+                      <Mail className="icon-sm" />
+                      Done
+                    </button>
+                  </div>
                 </div>
-              </form>
+              ) : (
+                <form className="associate-form" onSubmit={onAssociateEmail}>
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={associateEmail}
+                      onChange={(event) => {
+                        setAssociateEmail(event.target.value);
+                        setEmailTaken(false);
+                      }}
+                      placeholder="you@example.com"
+                      disabled={isAssociating}
+                    />
+                  </label>
+                  <label className="associate-consent">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={associateConsent}
+                      onChange={(event) => setAssociateConsent(event.target.checked)}
+                      disabled={isAssociating}
+                    />
+                    <span>
+                      I agree my email may be stored and processed to enable secure chat. See the{" "}
+                      <a href="/privacy" target="_blank" rel="noreferrer">
+                        privacy policy
+                      </a>
+                      .
+                    </span>
+                  </label>
+                  <label className="associate-consent">
+                    <input
+                      type="checkbox"
+                      checked={associateNewsletter}
+                      onChange={(event) => setAssociateNewsletter(event.target.checked)}
+                      disabled={isAssociating}
+                    />
+                    <span>Also send me an email when a new six-pager is published (optional, double opt-in).</span>
+                  </label>
+
+                  {status ? <p className="status-error">{status}</p> : null}
+
+                  {emailTaken ? (
+                    <button
+                      type="button"
+                      className="floating-chat-trigger"
+                      onClick={onClaimEmail}
+                      disabled={isAssociating || !associateConsent || !associateEmail.trim()}
+                    >
+                      {isAssociating ? <LoaderCircle className="icon-sm icon-spin" /> : <Mail className="icon-sm" />}
+                      Email me a link to attach this passkey to that account
+                    </button>
+                  ) : null}
+
+                  <div className="associate-actions">
+                    <button
+                      type="button"
+                      className="floating-chat-trigger floating-chat-ghost"
+                      onClick={onCancel}
+                      disabled={isAssociating}
+                    >
+                      Not now
+                    </button>
+                    <button
+                      type="submit"
+                      className="floating-chat-trigger"
+                      disabled={isAssociating || !associateConsent || !associateEmail.trim()}
+                    >
+                      {isAssociating ? <LoaderCircle className="icon-sm icon-spin" /> : <Mail className="icon-sm" />}
+                      {isAssociating ? "Sending…" : "Continue"}
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </motion.div>
         ) : null}
