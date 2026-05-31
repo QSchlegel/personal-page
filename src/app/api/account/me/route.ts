@@ -21,6 +21,17 @@ export async function GET(request: Request) {
 
   const email = auth.session.user.email;
 
+  // A session without a real email (bootstrap passkey, or an OAuth sign-in
+  // with no public address) has nothing to look up — guard before
+  // `email.toLowerCase()`, which would otherwise throw a 500.
+  if (!email || isBootstrapEmail(email)) {
+    return jsonOk({
+      isAdmin: false,
+      isBootstrap: true,
+      subscription: null,
+    });
+  }
+
   const subscriber = await prisma.subscriber.findUnique({
     where: { email: email.toLowerCase() },
     select: { status: true, confirmedAt: true, unsubscribedAt: true, createdAt: true },
