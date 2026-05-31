@@ -57,12 +57,19 @@ ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
 # Migration startup:
-# - `resolve --rolled-back 2_add_newsletter` is a one-time cleanup for the
-#   prod database where this migration is currently stuck in FAILED state
-#   (it referenced the DeliveryStatus enum from 0_init, which had drifted
-#   off the prod schema). It harmlessly errors on every other env where the
-#   migration is not in failed state, hence `|| true`.
-# - `migrate deploy` then applies the (now idempotent) migrations in order.
+# - One-time `resolve --rolled-back …` cleanups for migrations that have been
+#   stuck in FAILED state on the prod database. Each harmlessly errors on
+#   every other env where the migration is not in failed state (hence
+#   `|| true`). After the failed row is gone, `migrate deploy` re-applies the
+#   (now idempotent / repaired) migration in order.
+#     - 2_add_newsletter: failed because the DeliveryStatus enum from 0_init
+#       had drifted off the prod schema (fixed in PR #22).
+#     - 4_repair_chat_schema_drift: failed because one of the chat tables
+#       existed on prod with the wrong columns and `CREATE INDEX` couldn't
+#       find a column it expected. The migration was rewritten to DROP the
+#       chat tables CASCADE before recreating them, which is safe because no
+#       chat data has ever been written on prod.
+# - `migrate deploy` then applies the migrations in order.
 # - The server starts regardless of migration outcome so the runtime is
 #   self-recovering on flaky DB starts.
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate resolve --rolled-back 2_add_newsletter 2>/dev/null || true; node node_modules/prisma/build/index.js migrate deploy; node server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate resolve --rolled-back 2_add_newsletter 2>/dev/null || true; node node_modules/prisma/build/index.js migrate resolve --rolled-back 4_repair_chat_schema_drift 2>/dev/null || true; node node_modules/prisma/build/index.js migrate deploy; node server.js"]

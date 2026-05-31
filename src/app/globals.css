@@ -2343,14 +2343,56 @@ p {
 .floating-chat-associate .associate-consent {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 0.6rem;
   font-size: 0.82rem;
+  line-height: 1.5;
   color: var(--ink-2);
   font-weight: 400;
+  cursor: pointer;
 }
 
-.floating-chat-associate .associate-consent input {
-  margin-top: 0.18rem;
+/* Custom checkbox: square, accent-colored, properly inline with the label
+   text. The native macOS/Safari rendering centers the box and sometimes
+   shows a stark purple "X" — we draw a flat tick of our own so the form
+   feels of-a-piece with the rest of the editorial UI. */
+.floating-chat-associate .associate-consent input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0.18rem 0 0;
+  border: 1px solid var(--panel-border-strong);
+  border-radius: 3px;
+  background: var(--panel-bg);
+  cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.floating-chat-associate .associate-consent input[type="checkbox"]:hover {
+  border-color: var(--accent-1);
+}
+
+.floating-chat-associate .associate-consent input[type="checkbox"]:focus-visible {
+  outline: none;
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-1) 22%, transparent);
+}
+
+.floating-chat-associate .associate-consent input[type="checkbox"]:checked {
+  background: var(--accent-1);
+  border-color: var(--accent-1);
+}
+
+.floating-chat-associate .associate-consent input[type="checkbox"]:checked::before {
+  /* Simple, crisp tick: a single shape clipped from a solid fill. */
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--panel-bg);
+  clip-path: polygon(14% 50%, 38% 76%, 86% 22%, 100% 36%, 38% 100%, 0 64%);
 }
 
 .floating-chat-associate .associate-consent a {
