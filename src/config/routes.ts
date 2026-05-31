@@ -83,6 +83,15 @@ export function getRouteMeta(pathname: string): RouteMeta {
     };
   }
 
+  if (pathname.startsWith("/account")) {
+    return {
+      title: "Account",
+      description: "Identity, passkeys, sessions, newsletter, and right-to-erasure.",
+      showIntro: false,
+      motionProfile: "calm",
+    };
+  }
+
   return {
     title: "QS Platform",
     description: "Open-source product engineering across secure systems and developer-first workflows.",

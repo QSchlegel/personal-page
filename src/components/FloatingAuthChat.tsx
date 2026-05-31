@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Fingerprint, KeyRound, LoaderCircle, Mail, Minimize2, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
+import { AccountMenu } from "@/components/AccountMenu";
 import { CommsWorkspace } from "@/components/CommsWorkspace";
 import { authClient } from "@/lib/auth-client";
 import { isBootstrapEmail } from "@/lib/identity";
@@ -311,17 +312,22 @@ export function FloatingAuthChat() {
             </button>
           </div>
         ) : step === "associate-email" ? null : (
-          <button
-            type="button"
-            className="floating-chat-trigger"
-            onClick={onLaunchSecureChat}
-            disabled={isBusy || isPending}
-            aria-haspopup="dialog"
-            aria-expanded={isChatOpen}
-          >
-            {isBusy ? <LoaderCircle className="icon-sm icon-spin" /> : <Fingerprint className="icon-sm" />}
-            {isBusy ? "Securing..." : "Secure Chat"}
-          </button>
+          <div className="floating-chat-row">
+            <button
+              type="button"
+              className="floating-chat-trigger"
+              onClick={onLaunchSecureChat}
+              disabled={isBusy || isPending}
+              aria-haspopup="dialog"
+              aria-expanded={isChatOpen}
+            >
+              {isBusy ? <LoaderCircle className="icon-sm icon-spin" /> : <Fingerprint className="icon-sm" />}
+              {isBusy ? "Securing..." : "Secure Chat"}
+            </button>
+            {/* AccountMenu hides itself when there's no session or the user
+                is still on a bootstrap email — safe to always render here. */}
+            <AccountMenu />
+          </div>
         )}
 
         <AnimatePresence>
