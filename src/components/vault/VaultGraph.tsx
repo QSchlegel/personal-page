@@ -49,6 +49,7 @@ export function VaultGraph({ data }: VaultGraphProps) {
   const graphRef = useRef<ForceGraphMethods | undefined>(undefined);
   const tunedRef = useRef(false);
   const [width, setWidth] = useState(0);
+  const [height, setHeight] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
   // The library mutates node/link objects (adds x/y/vx/vy); hand it fresh clones.
@@ -65,7 +66,10 @@ export function VaultGraph({ data }: VaultGraphProps) {
     if (!element) {
       return;
     }
-    const update = () => setWidth(element.clientWidth);
+    const update = () => {
+      setWidth(element.clientWidth);
+      setHeight(element.clientHeight);
+    };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(element);
@@ -96,10 +100,19 @@ export function VaultGraph({ data }: VaultGraphProps) {
         return;
       }
       tunedRef.current = true;
+      // Scale link distance + repulsion to the available width so labels at
+      // the periphery don't run off the canvas on small screens. 95 / −260
+      // are the desktop targets (~width 880); shrink proportionally below
+      // that, but never below the floor.
+      const linkDistance = Math.max(48, Math.min(95, Math.round((width / 880) * 95)));
+      const chargeStrength = Math.max(
+        -260,
+        Math.min(-110, Math.round((width / 880) * -260)),
+      );
       const link = fg.d3Force("link") as { distance: (d: number) => unknown } | undefined;
       const charge = fg.d3Force("charge") as { strength: (s: number) => unknown } | undefined;
-      link?.distance(95);
-      charge?.strength(-260);
+      link?.distance(linkDistance);
+      charge?.strength(chargeStrength);
     };
     raf = requestAnimationFrame(tryTune);
     return () => cancelAnimationFrame(raf);
@@ -174,7 +187,7 @@ export function VaultGraph({ data }: VaultGraphProps) {
           ref={graphRef}
           graphData={graphData}
           width={width}
-          height={560}
+          height={height || 560}
           nodeId="id"
           nodeLabel=""
           backgroundColor="rgba(0,0,0,0)"
