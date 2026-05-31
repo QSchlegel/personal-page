@@ -2596,6 +2596,45 @@ p {
   margin-top: 0.4rem;
 }
 
+/* Neutral, informational notice (e.g. "that email already has an account") —
+   distinct from the red .status-error so an expected branch doesn't read as a
+   failure. */
+.floating-chat-associate .associate-notice {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-1) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-1) 26%, transparent);
+  color: var(--ink-1);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+/* Inside the modal these are form buttons, not the floating dock trigger — kill
+   the bob animation and the heavy drop shadow so they sit flat in the form. */
+.floating-chat-associate .floating-chat-trigger {
+  animation: none;
+  box-shadow: none;
+}
+
+/* The single primary action (Continue / Email me the link) reads as filled;
+   "Not now" stays as the ghost outline. */
+.floating-chat-associate .associate-actions .floating-chat-trigger:not(.floating-chat-ghost) {
+  background: var(--accent-1);
+  border-color: var(--accent-1);
+  color: #fffaf2;
+}
+
+.floating-chat-associate .associate-actions .floating-chat-trigger:not(.floating-chat-ghost):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-1) 86%, #000);
+  border-color: color-mix(in srgb, var(--accent-1) 86%, #000);
+}
+
+.floating-chat-associate .floating-chat-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* ---------- chat message states (optimistic + failed) ---------- */
 .message.pending {
   opacity: 0.7;
