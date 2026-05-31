@@ -25,7 +25,10 @@ const envSchema = z.object({
   PUBLIC_EMAIL: z.string().email().default("mail@quirinschlegel.com"),
   // Email + newsletter (Resend). Optional so dev/build works without sending.
   RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().default("Quirin Schlegel <hello@quirinschlegel.com>"),
+  // Sender domain must be a verified Resend domain — scr-x.com is the one this
+  // project's API key is authorized for (quirinschlegel.com 403s). Replies are
+  // routed to the public contact address.
+  EMAIL_FROM: z.string().default("Quirin Schlegel <hello@scr-x.com>"),
   NEWSLETTER_FROM: z.string().optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
   DOWNLOAD_TOKEN_SECRET: z.string().optional(),

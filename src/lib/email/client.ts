@@ -50,7 +50,9 @@ export async function sendEmail(input: SendEmailInput): Promise<SendResult> {
       subject: input.subject,
       html,
       headers: input.headers,
-      replyTo: input.replyTo,
+      // Sent from the scr-x.com sending domain; route replies to the real
+      // contact inbox so they don't land on an unmonitored mailbox.
+      replyTo: input.replyTo ?? env.PUBLIC_EMAIL,
     });
 
     if (error) {
