@@ -35,18 +35,26 @@ export async function sendEmail(input: SendEmailInput): Promise<SendResult> {
     return { ok: false, error: "Email delivery is not configured." };
   }
 
-  const { data, error } = await resend.emails.send({
-    from: input.from ?? env.EMAIL_FROM,
-    to: input.to,
-    subject: input.subject,
-    react: input.react,
-    headers: input.headers,
-    replyTo: input.replyTo,
-  });
+  // resend.emails.send can throw (not just return an error) — e.g. while
+  // rendering the React template. Catch it so a delivery problem degrades to a
+  // handled failure instead of crashing the request with a 500.
+  try {
+    const { data, error } = await resend.emails.send({
+      from: input.from ?? env.EMAIL_FROM,
+      to: input.to,
+      subject: input.subject,
+      react: input.react,
+      headers: input.headers,
+      replyTo: input.replyTo,
+    });
 
-  if (error) {
-    console.error("[email] send failed", error);
-    return { ok: false, error: error.message };
+    if (error) {
+      console.error("[email] send failed", error);
+      return { ok: false, error: error.message };
+    }
+    return { ok: true, id: data?.id };
+  } catch (error) {
+    console.error("[email] send threw", error);
+    return { ok: false, error: error instanceof Error ? error.message : "Email send failed." };
   }
-  return { ok: true, id: data?.id };
 }
