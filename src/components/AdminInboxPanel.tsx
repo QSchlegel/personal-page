@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Archive, Bot, Check, MessageSquare, RotateCcw, Send } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
@@ -26,6 +26,12 @@ export function AdminInboxPanel({ showPageHeading = true }: { showPageHeading?: 
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+
+  // Tracks the thread whose messages should currently be shown. A fast
+  // open → switch can let an earlier fetch resolve after a later one; we only
+  // apply a response if its thread is still the active one, so the panel never
+  // shows another conversation's history under the open thread.
+  const activeThreadRef = useRef<string | null>(null);
 
   async function loadInbox() {
     setLoading(true);
@@ -74,27 +80,35 @@ export function AdminInboxPanel({ showPageHeading = true }: { showPageHeading?: 
     setMessagesLoading(true);
     try {
       const response = await fetch(`/api/admin/inbox/threads/${threadId}/messages`);
+      // A later open/switch superseded this request — drop the stale result.
+      if (activeThreadRef.current !== threadId) return;
       if (!response.ok) {
         const payload = (await response.json()) as { error?: { message?: string } };
         throw new Error(payload.error?.message ?? "Unable to load messages.");
       }
       const payload = (await response.json()) as { messages: ThreadMessage[] };
+      if (activeThreadRef.current !== threadId) return;
       setMessages(payload.messages);
     } catch (error) {
+      if (activeThreadRef.current !== threadId) return;
       setStatus(error instanceof Error ? error.message : "Unable to load messages.");
     } finally {
-      setMessagesLoading(false);
+      if (activeThreadRef.current === threadId) {
+        setMessagesLoading(false);
+      }
     }
   }
 
   function openThread(threadId: string) {
     if (openThreadId === threadId) {
+      activeThreadRef.current = null;
       setOpenThreadId(null);
       setMessages([]);
       return;
     }
     setStatus(null);
     setDraft("");
+    activeThreadRef.current = threadId;
     setOpenThreadId(threadId);
     setMessages([]);
     void loadMessages(threadId);
