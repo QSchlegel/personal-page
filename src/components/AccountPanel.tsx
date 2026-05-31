@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -128,11 +129,30 @@ export function AccountPanel({ initial }: AccountPanelProps) {
       </header>
 
       <IdentityPanel initial={initial} />
+      {initial.isAdmin ? <InboxPointerPanel /> : null}
       <PasskeysPanel />
       <SessionsPanel />
       <NewsletterPanel initial={initial.subscription} userEmail={initial.user.email} />
       <DangerZone email={initial.user.email} onDeleted={() => router.push("/")} />
     </div>
+  );
+}
+
+// -- Inbox pointer (admin only) ----------------------------------------------
+
+function InboxPointerPanel() {
+  return (
+    <section className="panel account-panel">
+      <header>
+        <h2>
+          <Inbox className="icon-sm" /> Secure chat inbox
+        </h2>
+        <p className="status-muted">Where you read and answer the conversations people start with you.</p>
+      </header>
+      <div className="account-form-actions">
+        <Link href="/admin/inbox">Open the inbox</Link>
+      </div>
+    </section>
   );
 }
 

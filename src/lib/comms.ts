@@ -1,9 +1,48 @@
 import { BotEventStatus, Prisma, SenderType } from "@prisma/client";
 
-import { env } from "@/lib/env";
+import { sendEmail } from "@/lib/email/client";
+import { SecureChatReplyEmail } from "@/lib/email/templates";
+import { env, getAdminAllowlist } from "@/lib/env";
+import { isBootstrapEmail } from "@/lib/identity";
 import { moderateContent } from "@/lib/moderation";
 import { prisma } from "@/lib/prisma";
+import { absoluteUrl } from "@/lib/site";
 import type { RelayDeliveryResult } from "@/lib/types";
+
+/**
+ * Email each participant — other than the sender — that a reply is waiting, so
+ * a conversation round-trips even though no one gets in-app push. The owner
+ * (an admin address) is deliberately skipped: he triages from /admin/inbox and
+ * opted out of notifications. Bootstrap (passkey-*@local.invalid) addresses
+ * have no real inbox, so they're skipped too. Best-effort and fire-and-forget —
+ * a delivery failure must never block message creation.
+ */
+async function notifyReplyRecipients(input: {
+  recipients: Array<{ userId: string; email: string | null }>;
+  senderUserId: string | null;
+}): Promise<void> {
+  const admins = getAdminAllowlist();
+  const chatUrl = absoluteUrl("/comms");
+
+  await Promise.all(
+    input.recipients
+      .filter((r) => r.userId !== input.senderUserId)
+      .map((r) => r.email?.trim().toLowerCase())
+      .filter((email): email is string => Boolean(email))
+      .filter((email) => !isBootstrapEmail(email) && !admins.has(email))
+      .map(async (email) => {
+        try {
+          await sendEmail({
+            to: email,
+            subject: "You have a new reply in Secure Chat",
+            react: SecureChatReplyEmail({ chatUrl }),
+          });
+        } catch (error) {
+          console.error("[comms] reply notification failed", error);
+        }
+      }),
+  );
+}
 
 export async function findPrivateThreadBetweenUsers(userA: string, userB: string) {
   return prisma.thread.findFirst({
@@ -83,7 +122,11 @@ export async function createThreadMessage(input: {
 
   const thread = await prisma.thread.findUnique({
     where: { id: input.threadId },
-    include: { participants: true },
+    include: {
+      participants: {
+        include: { user: { select: { email: true } } },
+      },
+    },
   });
 
   if (!thread) {
@@ -147,6 +190,16 @@ export async function createThreadMessage(input: {
   await prisma.thread.update({
     where: { id: input.threadId },
     data: { updatedAt: new Date() },
+  });
+
+  // Nudge the other participant(s) by email that a reply is waiting. Fire and
+  // forget — never let a slow/failed send delay the message response.
+  void notifyReplyRecipients({
+    recipients: thread.participants.map((participant) => ({
+      userId: participant.userId,
+      email: participant.user?.email ?? null,
+    })),
+    senderUserId: recipientFilterUserId,
   });
 
   return {
