@@ -15,6 +15,21 @@ COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time, so they
+# must be present during `npm run build` — not just at runtime. Railway passes
+# service variables as build args; declare each one we inline so its value
+# reaches the build. Without this, NEXT_PUBLIC_SECURE_CHAT_QS_EMAIL was empty in
+# the bundle and the "Message Quirin" secure-chat tile never rendered, even
+# though the variable was set on the service.
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_SECURE_CHAT_QS_EMAIL
+ARG NEXT_PUBLIC_SECURE_CHAT_QSBOT_EMAIL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_SECURE_CHAT_QS_EMAIL=$NEXT_PUBLIC_SECURE_CHAT_QS_EMAIL \
+    NEXT_PUBLIC_SECURE_CHAT_QSBOT_EMAIL=$NEXT_PUBLIC_SECURE_CHAT_QSBOT_EMAIL
+
 RUN npx prisma generate && npm run build
 
 # ── Stage 3: Production runner ──
