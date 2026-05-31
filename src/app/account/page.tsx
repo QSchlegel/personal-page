@@ -19,8 +19,10 @@ export default async function AccountPage() {
   }
 
   // The associate-email step needs to happen first — there's no useful account
-  // surface for a bootstrap address.
-  if (isBootstrapEmail(session.user.email)) {
+  // surface for a bootstrap address, and a session with no real email at all
+  // (e.g. an OAuth sign-in without a public address) must not reach the
+  // subscriber lookup below, which would throw on `email.toLowerCase()`.
+  if (!session.user.email || isBootstrapEmail(session.user.email)) {
     redirect("/?associate=1");
   }
 

@@ -18,6 +18,12 @@ import { isBootstrapEmail } from "@/lib/identity";
 interface MeResponse {
   isAdmin: boolean;
   isBootstrap: boolean;
+  subscription: {
+    status: "PENDING" | "CONFIRMED" | "UNSUBSCRIBED";
+    confirmedAt: string | null;
+    unsubscribedAt: string | null;
+    createdAt: string;
+  } | null;
 }
 
 /**
