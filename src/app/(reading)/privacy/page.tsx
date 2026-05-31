@@ -70,7 +70,9 @@ export default function PrivacyPage() {
         <h2>Your rights</h2>
         <p>
           Under the GDPR you have the right to access, rectification, erasure, restriction, data portability, and to
-          object, as well as to withdraw consent at any time. To exercise any of these, email{" "}
+          object, as well as to withdraw consent at any time. If you have an account, the easiest way to exercise
+          erasure is the <em>Danger zone</em> button on <a href="/account">your Account page</a>, which deletes
+          everything we hold for you and unsubscribes you from the newsletter in one step. For anything else, email{" "}
           <a href="mailto:mail@quirinschlegel.com">mail@quirinschlegel.com</a>. You also have the right to lodge a
           complaint with a supervisory authority.
         </p>

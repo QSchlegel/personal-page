@@ -10,6 +10,8 @@ import { FloatingAuthChat } from "@/components/FloatingAuthChat";
 import { Wordmark } from "@/components/Wordmark";
 import { getRouteMeta } from "@/config/routes";
 import { siteConfig } from "@/config/site";
+import { authClient } from "@/lib/auth-client";
+import { isBootstrapEmail } from "@/lib/identity";
 import { easingStandard } from "@/lib/motion";
 
 function mastheadStamp(): string {
@@ -39,6 +41,11 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
   const routeMeta = getRouteMeta(pathname);
   const reduceMotion = useReducedMotion();
+  // Surface an "Account" link in the footer + drawer once the user has a real
+  // (non-bootstrap) session. The full account UX lives at /account.
+  const { data: accountSession } = authClient.useSession();
+  const showAccountLink =
+    Boolean(accountSession?.user?.id) && !isBootstrapEmail(accountSession?.user?.email);
   // When the hero portrait scrolls up under the nav, dock a small avatar into
   // the header so the face keeps "watching" the reader as they scroll.
   const [docked, setDocked] = useState(false);
@@ -167,6 +174,13 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                 ))}
               </ul>
               <ul className="site-nav-drawer-secondary">
+                {showAccountLink ? (
+                  <li>
+                    <Link href="/account" onClick={closeNav}>
+                      Account
+                    </Link>
+                  </li>
+                ) : null}
                 {DRAWER_SECONDARY.map((link) =>
                   link.external ? (
                     <li key={link.href}>
@@ -249,6 +263,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <Link href="/newsletter">Newsletter</Link>
           <a href="/blog/rss.xml">RSS</a>
           <Link href="/privacy">Privacy</Link>
+          {showAccountLink ? <Link href="/account">Account</Link> : null}
         </nav>
         <nav className="site-footer-links" aria-label="Elsewhere">
           <a href={siteConfig.contact.github} target="_blank" rel="noreferrer">
