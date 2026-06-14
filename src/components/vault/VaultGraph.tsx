@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Maximize2, Minus, Plus } from "lucide-react";
 import type { ForceGraphMethods, NodeObject } from "react-force-graph-2d";
 
 import type { GraphData, GraphNode } from "@/lib/content/types";
@@ -48,6 +49,7 @@ export function VaultGraph({ data }: VaultGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphMethods | undefined>(undefined);
   const tunedRef = useRef(false);
+  const fittedRef = useRef(false);
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -180,9 +182,31 @@ export function VaultGraph({ data }: VaultGraphProps) {
     [hoverId],
   );
 
+  // Frame the whole graph once, the first time the simulation settles, so no
+  // node is ever stranded off-canvas (disconnected clusters used to drift out
+  // of view). Guarded so a later drag-induced re-settle doesn't yank the user's
+  // pan/zoom back. zoomToFit only moves the camera — it never reheats the
+  // engine, so it's safe to call from onEngineStop.
+  const handleEngineStop = useCallback(() => {
+    if (fittedRef.current) return;
+    fittedRef.current = true;
+    graphRef.current?.zoomToFit(420, 56);
+  }, []);
+
+  const fitView = useCallback(() => {
+    graphRef.current?.zoomToFit(420, 56);
+  }, []);
+
+  const zoomBy = useCallback((factor: number) => {
+    const fg = graphRef.current;
+    if (!fg) return;
+    fg.zoom(fg.zoom() * factor, 220);
+  }, []);
+
   return (
     <div className="vault-graph" ref={containerRef}>
       {width > 0 ? (
+        <>
         <ForceGraph2D
           ref={graphRef}
           graphData={graphData}
@@ -195,6 +219,7 @@ export function VaultGraph({ data }: VaultGraphProps) {
           linkWidth={1.1}
           d3VelocityDecay={0.32}
           cooldownTicks={220}
+          onEngineStop={handleEngineStop}
           nodeCanvasObjectMode={() => "replace"}
           nodeCanvasObject={nodeCanvasObject}
           // Make the whole node area clickable / hoverable, not just the painted dot.
@@ -219,6 +244,36 @@ export function VaultGraph({ data }: VaultGraphProps) {
             }
           }}
         />
+        <div className="vault-graph__controls" role="group" aria-label="Graph view controls">
+          <button
+            type="button"
+            className="vault-graph__btn"
+            onClick={() => zoomBy(1.4)}
+            aria-label="Zoom in"
+            title="Zoom in"
+          >
+            <Plus aria-hidden strokeWidth={1.8} />
+          </button>
+          <button
+            type="button"
+            className="vault-graph__btn"
+            onClick={() => zoomBy(1 / 1.4)}
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            <Minus aria-hidden strokeWidth={1.8} />
+          </button>
+          <button
+            type="button"
+            className="vault-graph__btn"
+            onClick={fitView}
+            aria-label="Fit graph to view"
+            title="Fit to view"
+          >
+            <Maximize2 aria-hidden strokeWidth={1.8} />
+          </button>
+        </div>
+        </>
       ) : null}
     </div>
   );
