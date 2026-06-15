@@ -9,6 +9,16 @@ import { z } from "zod";
 export const NOTE_TYPES = ["6-pager", "note"] as const;
 export type NoteType = (typeof NOTE_TYPES)[number];
 
+/**
+ * Disclosure tier for the AI concierge:
+ *  - "public":  may be retrieved AND quoted/revealed verbatim.
+ *  - "gated":   may be reasoned over and pointed to, but not dumped wholesale.
+ *  - "private": never enters the knowledge base; the CV is always private.
+ * Defaults to "private" so a note is only exposed once explicitly opted in.
+ */
+export const NOTE_VISIBILITIES = ["public", "gated", "private"] as const;
+export type NoteVisibility = (typeof NOTE_VISIBILITIES)[number];
+
 /** Accept a YAML date (parsed by gray-matter into a Date) or a plain string. */
 const dateLike = z.union([z.string(), z.date()]).optional();
 
@@ -19,6 +29,8 @@ export const frontmatterSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   type: z.enum(NOTE_TYPES).optional().default("note"),
   publish: z.boolean().optional().default(false),
+  /** Disclosure tier for the AI concierge knowledge base. Defaults to private. */
+  visibility: z.enum(NOTE_VISIBILITIES).optional().default("private"),
   /** Filename (within content/pdf) of the email-gated PDF. 6-pagers only. */
   pdf: z.string().optional(),
   created: dateLike,
@@ -38,6 +50,7 @@ export interface Note {
   tags: string[];
   type: NoteType;
   publish: boolean;
+  visibility: NoteVisibility;
   pdf?: string;
   created?: string;
   updated?: string;

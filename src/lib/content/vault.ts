@@ -37,6 +37,7 @@ function parseNote(filePath: string): Note | null {
     tags: fm.tags,
     type: fm.type,
     publish: fm.publish,
+    visibility: fm.visibility,
     pdf: fm.pdf,
     created: toIsoString(fm.created),
     updated: toIsoString(fm.updated),
@@ -73,6 +74,16 @@ export function getAllNotes(): Note[] {
 
 export function getPublishedNotes(): Note[] {
   return readVault().filter((note) => note.publish);
+}
+
+/**
+ * Notes eligible for the AI concierge knowledge base: only "public" and
+ * "gated" tiers are ever embedded. Private notes (and the CV) never leave the
+ * filesystem — this is the hard guarantee behind the disclosure policy, enforced
+ * at ingestion time rather than relying on the prompt alone.
+ */
+export function getCorpusNotes(): Note[] {
+  return readVault().filter((note) => note.visibility === "public" || note.visibility === "gated");
 }
 
 export function getSixPagers(): Note[] {
