@@ -1,5 +1,8 @@
 import { BotEventStatus, Prisma, SenderType } from "@prisma/client";
 
+import type { HistoryEntry } from "@/lib/agent";
+import { CONCIERGE_CANNED } from "@/lib/concierge/persona";
+import { conciergeConfigured, generateConciergeReply } from "@/lib/concierge/runner";
 import { sendEmail } from "@/lib/email/client";
 import { SecureChatReplyEmail } from "@/lib/email/templates";
 import { env, getAdminAllowlist } from "@/lib/env";
@@ -8,6 +11,8 @@ import { moderateContent } from "@/lib/moderation";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/site";
 import type { RelayDeliveryResult } from "@/lib/types";
+
+const MAX_CONCIERGE_HISTORY = 20;
 
 /**
  * Email each participant — other than the sender — that a reply is waiting, so
@@ -183,7 +188,7 @@ export async function createThreadMessage(input: {
       });
 
       eventIds.push(event.id);
-      void attemptRelayDelivery(event.id);
+      void deliverBotEvent(event.id);
     }
   }
 
@@ -206,6 +211,98 @@ export async function createThreadMessage(input: {
     message,
     events: eventIds,
   };
+}
+
+/** Recent thread turns (oldest→newest) before the triggering message, as agent history. */
+async function loadConciergeHistory(threadId: string, before: Date): Promise<HistoryEntry[]> {
+  const rows = await prisma.message.findMany({
+    where: { threadId, createdAt: { lt: before }, senderType: { not: SenderType.SYSTEM } },
+    orderBy: { createdAt: "desc" },
+    take: MAX_CONCIERGE_HISTORY,
+    select: { senderType: true, content: true },
+  });
+  return rows
+    .reverse()
+    .map((row) => ({
+      role: row.senderType === SenderType.BOT ? ("assistant" as const) : ("user" as const),
+      content: row.content,
+    }));
+}
+
+/**
+ * Deliver a pending BotEvent. When the recipient is a bot identity and the
+ * in-process concierge is configured, generate a vault-grounded reply with
+ * the local agent module and post it as a BOT message; otherwise fall back to the
+ * external relay (BOT_RELAY_URL). Replaces the previous relay-only path.
+ */
+export async function deliverBotEvent(eventId: string): Promise<void> {
+  const event = await prisma.botEvent.findUnique({
+    where: { id: eventId },
+    include: {
+      message: true,
+      recipientUser: { include: { botIdentity: true } },
+    },
+  });
+  if (!event) {
+    return;
+  }
+
+  const botIdentity = event.recipientUser.botIdentity;
+  // Not a concierge recipient, or concierge not wired up → keep legacy relay behavior.
+  if (!botIdentity || !conciergeConfigured()) {
+    await attemptRelayDelivery(eventId);
+    return;
+  }
+
+  // Echo-loop guard: the concierge never replies to a BOT (or system) message.
+  if (event.message.senderType !== SenderType.USER) {
+    await prisma.botEvent.update({
+      where: { id: eventId },
+      data: { status: BotEventStatus.ACKNOWLEDGED, acknowledgedAt: new Date(), attempts: { increment: 1 } },
+    });
+    return;
+  }
+
+  try {
+    const history = await loadConciergeHistory(event.threadId, event.message.createdAt);
+    const reply = await generateConciergeReply({
+      conversationId: event.threadId,
+      question: event.message.content,
+      history,
+      userRef: event.recipientUserId,
+    });
+
+    // Outbound moderation on the bot's own output before it is persisted.
+    const outbound = moderateContent(reply.answer);
+    const content = outbound.allowed ? reply.answer : CONCIERGE_CANNED.escalation;
+
+    await createThreadMessage({
+      threadId: event.threadId,
+      senderType: SenderType.BOT,
+      senderBotId: botIdentity.id,
+      actingUserId: event.recipientUserId,
+      content,
+      metadata: { conciergeTraceId: reply.traceId, escalated: reply.escalated },
+    });
+
+    await prisma.botDeliveryAttempt.create({ data: { botEventId: eventId, status: "SUCCESS" } });
+    await prisma.botEvent.update({
+      where: { id: eventId },
+      data: { status: BotEventStatus.DELIVERED, attempts: { increment: 1 }, nextAttemptAt: null },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Concierge generation failed.";
+    await prisma.botDeliveryAttempt.create({ data: { botEventId: eventId, status: "FAILED", error: message } });
+    await prisma.botEvent.update({
+      where: { id: eventId },
+      data: {
+        status: BotEventStatus.FAILED,
+        attempts: { increment: 1 },
+        nextAttemptAt: new Date(Date.now() + 2 * 60 * 1000),
+      },
+    });
+    console.error("[concierge] delivery failed", error);
+  }
 }
 
 export async function attemptRelayDelivery(eventId: string): Promise<RelayDeliveryResult> {

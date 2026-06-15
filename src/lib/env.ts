@@ -19,6 +19,16 @@ const envSchema = z.object({
   BOT_RELAY_URL: z.string().url().optional(),
   BOT_RELAY_TOKEN: z.string().min(8).default("replace-this-relay-token"),
   BOT_HMAC_SECRET_ROTATION_WINDOW_DAYS: z.coerce.number().int().positive().default(30),
+  // AI concierge (Phase 2). All optional so dev/build runs without them; the
+  // concierge stays inert until ANTHROPIC_API_KEY + KB_DATABASE_URL are set.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  VOYAGE_API_KEY: z.string().optional(),
+  // Dedicated pgvector Postgres for the knowledge base (kept off the shared app DB).
+  KB_DATABASE_URL: z.string().optional(),
+  CONCIERGE_MODEL: z.string().default("claude-opus-4-8"),
+  CONCIERGE_RERANK_ENABLED: z.coerce.boolean().default(true),
+  // Set to the concierge bot's User.email to light up the "AI Assistant" tile.
+  NEXT_PUBLIC_SECURE_CHAT_QSBOT_EMAIL: z.string().optional(),
   PUBLIC_TWITTER_URL: z.string().url().optional(),
   PUBLIC_GITHUB_URL: z.string().url().default("https://github.com/QSchlegel"),
   PUBLIC_LINKEDIN_URL: z.string().url().default("https://www.linkedin.com/in/quirin-schlegel-7553ba197/"),
