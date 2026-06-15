@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS kb_chunks (
   document_id INTEGER NOT NULL REFERENCES kb_documents(id) ON DELETE CASCADE,
   content     TEXT NOT NULL,
   heading     TEXT,
-  -- Voyage voyage-3-large at 1024 dims (vector-space compatible with bge-m3).
-  embedding   vector(1024),
+  -- TEI BAAI/bge-base-en-v1.5 at 768 dims (self-hosted on Railway).
+  embedding   vector(768),
   -- Generated lexical column for the full-text half of hybrid search.
   tsv         tsvector GENERATED ALWAYS AS (
     to_tsvector('english', coalesce(heading, '') || ' ' || content)

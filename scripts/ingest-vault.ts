@@ -2,12 +2,12 @@
  * Ingest the vault into the concierge knowledge base.
  *
  * Reads content/vault/*.md, keeps ONLY public + gated notes (private/CV never
- * leave disk), chunks them, embeds with Voyage, and upserts into the dedicated
- * pgvector DB. Hash-based incremental: unchanged documents are skipped.
+ * leave disk), chunks them, embeds via the self-hosted TEI service, and upserts
+ * into the dedicated pgvector DB. Hash-based incremental: unchanged docs skipped.
  *
  *   npx tsx scripts/ingest-vault.ts
  *
- * Requires: VOYAGE_API_KEY, KB_DATABASE_URL, and the schema applied
+ * Requires: EMBEDDINGS_URL (TEI), KB_DATABASE_URL, and the schema applied
  * (scripts/kb-schema.sql).
  */
 import { createHash } from "node:crypto";
@@ -18,7 +18,7 @@ import { slug as slugify } from "github-slugger";
 import matter from "gray-matter";
 import { Pool } from "pg";
 
-import { VoyageAdapter } from "../src/lib/agent/adapters/voyage";
+import { TeiEmbedder } from "../src/lib/agent/adapters/tei";
 
 const VAULT_DIR = path.join(process.cwd(), "content", "vault");
 const SOURCE = "vault";
@@ -101,13 +101,13 @@ function hashOf(content: string): string {
 }
 
 async function main(): Promise<void> {
-  const apiKey = process.env.VOYAGE_API_KEY;
+  const embeddingsUrl = process.env.EMBEDDINGS_URL;
   const dbUrl = process.env.KB_DATABASE_URL;
-  if (!apiKey || !dbUrl) {
-    throw new Error("Set VOYAGE_API_KEY and KB_DATABASE_URL before running ingestion.");
+  if (!embeddingsUrl || !dbUrl) {
+    throw new Error("Set EMBEDDINGS_URL and KB_DATABASE_URL before running ingestion.");
   }
 
-  const embedder = new VoyageAdapter({ apiKey, inputType: "document", dimension: 1024 });
+  const embedder = new TeiEmbedder({ baseUrl: embeddingsUrl });
   const pool = new Pool({ connectionString: dbUrl, max: 4 });
   const notes = readCorpus();
   console.log(`[ingest] ${notes.length} public/gated notes found.`);

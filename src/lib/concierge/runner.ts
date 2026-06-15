@@ -1,19 +1,25 @@
 /**
- * Concierge runner: assembles the Claude + Voyage + pgvector providers and runs
- * the local agent pipeline (classify → retrieve → rerank → answer →
- * grounding → escalation). Pure with respect to the app DB — the caller loads
- * history and persists the resulting BOT message.
+ * Concierge runner: assembles the Claude (answer) + self-hosted TEI (embeddings)
+ * + pgvector providers and runs the local agent pipeline (classify → retrieve →
+ * rerank → answer → grounding → escalation). Pure with respect to the app DB —
+ * the caller loads history and persists the resulting BOT message.
+ *
+ * Reranking is disabled (the corpus is small; hybrid vector+FTS+RRF is enough),
+ * so no external rerank service is needed — everything runs on Railway.
  */
-import { buildConfigSnapshot, createConciergeExecutor, type HistoryEntry } from "@/lib/agent";
+import { buildConfigSnapshot, createConciergeExecutor, type HistoryEntry, type Reranker } from "@/lib/agent";
 import { AnthropicAdapter } from "@/lib/agent/adapters/anthropic";
-import { VoyageAdapter } from "@/lib/agent/adapters/voyage";
+import { TeiEmbedder } from "@/lib/agent/adapters/tei";
 import { env } from "@/lib/env";
 import { getKbRetriever } from "@/lib/concierge/kb";
 import { CONCIERGE_ANSWER_SYSTEM, CONCIERGE_CANNED, CONCIERGE_CLASSIFIER } from "@/lib/concierge/persona";
 
-/** The concierge is inert until Claude + Voyage + the KB datastore are configured. */
+/** No external reranker — the rerank node keeps RRF order when unavailable. */
+const noopReranker: Reranker = { available: false, async rerank() { return []; } };
+
+/** The concierge is inert until Claude, the embeddings service, and the KB are configured. */
 export function conciergeConfigured(): boolean {
-  return Boolean(env.ANTHROPIC_API_KEY && env.VOYAGE_API_KEY && env.KB_DATABASE_URL);
+  return Boolean(env.ANTHROPIC_API_KEY && env.EMBEDDINGS_URL && env.KB_DATABASE_URL);
 }
 
 export interface ConciergeReply {
@@ -30,13 +36,12 @@ export async function generateConciergeReply(input: {
   signal?: AbortSignal;
 }): Promise<ConciergeReply> {
   if (!conciergeConfigured()) {
-    throw new Error("Concierge is not configured (ANTHROPIC_API_KEY / VOYAGE_API_KEY / KB_DATABASE_URL).");
+    throw new Error("Concierge is not configured (ANTHROPIC_API_KEY / EMBEDDINGS_URL / KB_DATABASE_URL).");
   }
 
   const llm = new AnthropicAdapter({ apiKey: env.ANTHROPIC_API_KEY, healthModel: env.CONCIERGE_MODEL });
-  // Voyage input_type 'query' for the retrieval embedding; the reranker shares the client.
-  const embeddings = new VoyageAdapter({ apiKey: env.VOYAGE_API_KEY, inputType: "query" });
-  const reranker = new VoyageAdapter({ apiKey: env.VOYAGE_API_KEY });
+  const embeddings = new TeiEmbedder({ baseUrl: env.EMBEDDINGS_URL! });
+  const reranker = noopReranker;
   const retriever = getKbRetriever();
 
   const executor = createConciergeExecutor(
@@ -47,7 +52,7 @@ export async function generateConciergeReply(input: {
   const config = buildConfigSnapshot({
     pipeline: {
       chatModel: env.CONCIERGE_MODEL,
-      rerankMode: env.CONCIERGE_RERANK_ENABLED ? "reranker" : "none",
+      rerankMode: "none",
     },
     prompts: {
       classifier: { version: 1, content: CONCIERGE_CLASSIFIER },

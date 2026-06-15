@@ -5,7 +5,7 @@
  *
  * Adapters live in ./adapters/* and are imported directly where needed:
  *   import { AnthropicAdapter } from '@/lib/agent/adapters/anthropic'
- *   import { VoyageAdapter } from '@/lib/agent/adapters/voyage'
+ *   import { TeiEmbedder } from '@/lib/agent/adapters/tei'
  *   import { createPgRetriever } from '@/lib/agent/retrieval'
  */
 export * from './types';
