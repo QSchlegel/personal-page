@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { AccountMenu } from "@/components/AccountMenu";
 import { CommsWorkspace } from "@/components/CommsWorkspace";
+import { SecureChatMarble } from "@/components/SecureChatMarble";
 import { authClient } from "@/lib/auth-client";
 import { isBootstrapEmail } from "@/lib/identity";
 import {
@@ -363,17 +364,12 @@ export function FloatingAuthChat() {
           </div>
         ) : step === "associate-email" ? null : (
           <div className="floating-chat-row">
-            <button
-              type="button"
-              className="floating-chat-trigger"
+            <SecureChatMarble
               onClick={onLaunchSecureChat}
               disabled={isBusy || isPending}
-              aria-haspopup="dialog"
-              aria-expanded={isChatOpen}
-            >
-              {isBusy ? <LoaderCircle className="icon-sm icon-spin" /> : <Fingerprint className="icon-sm" />}
-              {isBusy ? "Securing..." : "Secure Chat"}
-            </button>
+              busy={isBusy}
+              expanded={isChatOpen}
+            />
             {/* AccountMenu hides itself when there's no session or the user
                 is still on a bootstrap email — safe to always render here. */}
             <AccountMenu />

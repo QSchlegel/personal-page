@@ -23,7 +23,10 @@ const configuredSecureTargets = [
     id: "qsbot",
     kind: "ai",
     label: "AI Assistant",
-    email: process.env.NEXT_PUBLIC_SECURE_CHAT_QSBOT_EMAIL ?? "",
+    // Defaults to the concierge identity seeded by scripts/seed-concierge.ts so
+    // the AI tile is visible out of the box; override per-deploy if the bot uses
+    // a different address.
+    email: process.env.NEXT_PUBLIC_SECURE_CHAT_QSBOT_EMAIL ?? "concierge@quirinschlegel.com",
     description: "Ask my AI assistant — usually replies right away.",
   },
 ] as const satisfies ReadonlyArray<{
