@@ -41,7 +41,9 @@ const envSchema = z.object({
   // routed to the public contact address.
   EMAIL_FROM: z.string().default("Quirin Schlegel <hello@scr-x.com>"),
   NEWSLETTER_FROM: z.string().optional(),
-  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  // Optional canonical URL; a malformed/blank value must not crash the build —
+  // fall back to undefined (site.ts then derives the origin from auth/Railway).
+  NEXT_PUBLIC_SITE_URL: z.string().url().optional().catch(undefined),
   DOWNLOAD_TOKEN_SECRET: z.string().optional(),
   NEWSLETTER_CONSENT_VERSION: z.string().default("2026-05-30-v1"),
 });
