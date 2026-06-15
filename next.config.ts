@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
     "/api/vault/download": ["./content/pdf/**", "./content/vault/**"],
     "/api/vault/download-request": ["./content/vault/**"],
     "/admin/newsletter": ["./content/vault/**"],
+    // The concierge ingest route reads content/vault/*.md at runtime to embed.
+    "/api/admin/kb/ingest": ["./content/vault/**"],
   },
 };
 
