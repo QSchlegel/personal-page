@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Bot, ChevronLeft, MessageCircle, Plus, Send, User } from "lucide-react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Bot, ChevronLeft, MessageCircle, Send, User } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { AuthPanel } from "@/components/AuthPanel";
@@ -85,6 +85,12 @@ function tmpId(): string {
   return `tmp_${Math.random().toString(36).slice(2, 10)}_${performance.now().toString(36)}`;
 }
 
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+const GROUP_GAP_MS = 5 * 60 * 1000;
+
 export function CommsWorkspace({
   embedded = false,
   showPageHeading = true,
@@ -95,12 +101,12 @@ export function CommsWorkspace({
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<PendingMessage[]>([]);
   const [status, setStatus] = useState<string | null>(null);
-  const [newThreadEmail, setNewThreadEmail] = useState("");
-  const [newThreadMessage, setNewThreadMessage] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
   const [isCreatingThread, setIsCreatingThread] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const reduceMotion = useReducedMotion();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const signedIn = Boolean(session?.user?.id);
   const currentUserId = session?.user.id ?? "";
@@ -137,12 +143,6 @@ export function CommsWorkspace({
 
     return targets;
   }, [currentUserEmail]);
-
-  // A target the viewer can actually click (excludes "coming soon" placeholders).
-  const hasActionableTarget = useMemo(
-    () => secureTargets.some((target) => !target.comingSoon),
-    [secureTargets],
-  );
 
   // True when the viewer is one of the configured identities (e.g. the owner),
   // so the empty-state copy can explain that incoming threads land here.
@@ -270,6 +270,20 @@ export function CommsWorkspace({
     [threads, selectedThreadId],
   );
 
+  // Keep the conversation pinned to the newest message as it grows.
+  useEffect(() => {
+    if (!selectedThreadId) return;
+    messagesEndRef.current?.scrollIntoView({ block: "end", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [messages, selectedThreadId, reduceMotion]);
+
+  // Auto-grow the composer to fit the draft (capped), and shrink back on send.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [draftMessage, selectedThreadId]);
+
   // -- thread create -----------------------------------------------------------
   const createThreadByEmail = useCallback(
     async (targetUserEmail: string, initialMessage?: string): Promise<string | null> => {
@@ -308,26 +322,6 @@ export function CommsWorkspace({
     },
     [handleAuthError, loadMessages, loadThreads],
   );
-
-  async function onCreateThread(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus(null);
-    if (!newThreadEmail.trim() || isCreatingThread) {
-      return;
-    }
-
-    setIsCreatingThread(true);
-    const createdThreadId = await createThreadByEmail(newThreadEmail.trim(), newThreadMessage || undefined);
-    setIsCreatingThread(false);
-
-    if (!createdThreadId) {
-      // Keep what the user typed so they can correct + retry.
-      return;
-    }
-
-    setNewThreadEmail("");
-    setNewThreadMessage("");
-  }
 
   async function onCreateSecureTargetThread(target: SecureTarget) {
     if (isCreatingThread) {
@@ -400,6 +394,14 @@ export function CommsWorkspace({
       setStatus(error instanceof Error ? error.message : "Unable to send message.");
     } finally {
       setIsSendingMessage(false);
+    }
+  }
+
+  function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    // Enter sends; Shift+Enter inserts a newline.
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
     }
   }
 
@@ -532,42 +534,13 @@ export function CommsWorkspace({
             ) : (
               <li>
                 <p className="status-muted">
-                  {hasActionableTarget
-                    ? "No conversations yet. Use a button above to start one."
-                    : ownerIsViewer
-                      ? "No conversations yet. Threads that people start with you will show up here."
-                      : "No conversations yet. Use ‘Reach someone else by email’ below to start one."}
+                  {ownerIsViewer
+                    ? "No conversations yet. Threads that people start with you will show up here."
+                    : "No conversations yet. Pick someone above to start one."}
                 </p>
               </li>
             )}
           </ul>
-
-          <details className="comms-email-disclosure">
-            <summary>Reach someone else by email</summary>
-            <form className="inline-form" onSubmit={onCreateThread}>
-              <label>
-                Their email address
-                <input
-                  type="email"
-                  required
-                  value={newThreadEmail}
-                  onChange={(event) => setNewThreadEmail(event.target.value)}
-                  placeholder="name@example.com"
-                  disabled={isCreatingThread}
-                />
-              </label>
-              <textarea
-                value={newThreadMessage}
-                onChange={(event) => setNewThreadMessage(event.target.value)}
-                placeholder="Optional first message"
-                disabled={isCreatingThread}
-              />
-              <button type="submit" disabled={isCreatingThread}>
-                <Plus className="icon-sm" />
-                {isCreatingThread ? "Creating..." : "Create"}
-              </button>
-            </form>
-          </details>
         </motion.aside>
 
         <motion.div className="comms-thread" layout={!reduceMotion}>
@@ -592,63 +565,78 @@ export function CommsWorkspace({
           </header>
 
           <div className="message-list" aria-live="polite">
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {messages.length > 0 ? (
-                messages.map((message) => {
+                messages.map((message, index) => {
                   const mine = message.senderUserId === currentUserId;
-                  const otherName = selectedThread
-                    ? participantName(selectedThread, currentUserId)
-                    : "";
+                  const otherName = selectedThread ? participantName(selectedThread, currentUserId) : "";
+                  const prev = messages[index - 1];
+                  const sameSender =
+                    !!prev &&
+                    prev.senderType === message.senderType &&
+                    prev.senderUserId === message.senderUserId &&
+                    prev.senderBotId === message.senderBotId;
+                  const gap = prev
+                    ? new Date(message.createdAt).getTime() - new Date(prev.createdAt).getTime()
+                    : Infinity;
+                  const groupStart = !sameSender || gap > GROUP_GAP_MS;
+                  const sender = mine ? "me" : message.senderType === "BOT" ? "bot" : "user";
                   return (
                     <motion.article
                       key={message.id}
-                      className={[
-                        "message",
-                        mine ? "mine" : "",
-                        message.pending ? "pending" : "",
-                        message.failed ? "failed" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      initial={false}
-                      animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
+                      className="msg"
+                      data-sender={sender}
+                      data-group-start={groupStart ? "" : undefined}
+                      data-state={message.pending ? "pending" : message.failed ? "failed" : undefined}
+                      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18 }}
                     >
-                      <span>
-                        {senderLabel(message, currentUserId, otherName)}
-                        {message.pending ? " · sending…" : null}
-                        {message.failed ? " · not sent" : null}
-                      </span>
-                      <p>{message.content}</p>
-                      <time>{new Date(message.createdAt).toLocaleString("en-US")}</time>
+                      {!mine ? (
+                        <span className="msg-avatar" aria-hidden="true">
+                          {groupStart ? (
+                            sender === "bot" ? <Bot className="icon-sm" /> : <User className="icon-sm" />
+                          ) : null}
+                        </span>
+                      ) : null}
+                      <div className="msg-col">
+                        {groupStart ? (
+                          <span className="msg-meta">{senderLabel(message, currentUserId, otherName)}</span>
+                        ) : null}
+                        <div className="msg-bubble">{message.content}</div>
+                        <time className="msg-time">
+                          {formatTime(message.createdAt)}
+                          {message.pending ? " · sending…" : null}
+                          {message.failed ? " · not sent" : null}
+                        </time>
+                      </div>
                     </motion.article>
                   );
                 })
               ) : (
-                <motion.p
-                  key="empty"
-                  className="status-muted"
-                  initial={false}
-                  animate={{ opacity: 1 }}
-                >
-                  {selectedThreadId ? "No messages yet. Send the first message." : "Select a thread to view messages."}
-                </motion.p>
+                <motion.div key="empty" className="message-empty" initial={false} animate={{ opacity: 1 }}>
+                  <MessageCircle className="message-empty-icon" aria-hidden="true" />
+                  <p>{selectedThreadId ? "No messages yet — say hello." : "Select a conversation to start reading."}</p>
+                </motion.div>
               )}
             </AnimatePresence>
+            <div ref={messagesEndRef} aria-hidden="true" />
           </div>
 
           {selectedThreadId ? (
             <form className="message-form" onSubmit={onSendMessage}>
               <textarea
+                ref={textareaRef}
+                rows={1}
                 required
                 value={draftMessage}
                 onChange={(event) => setDraftMessage(event.target.value)}
-                placeholder="Write a message"
+                onKeyDown={onComposerKeyDown}
+                placeholder="Write a message…  (Enter to send, Shift+Enter for a new line)"
                 disabled={isSendingMessage}
               />
-              <button type="submit" disabled={isSendingMessage}>
+              <button type="submit" disabled={isSendingMessage} aria-label="Send message">
                 <Send className="icon-sm" />
-                {isSendingMessage ? "Sending…" : "Send"}
               </button>
             </form>
           ) : null}
