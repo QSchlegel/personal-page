@@ -45,6 +45,15 @@ export const siteConfig = {
     "Secure Runtime Design",
     "Platform Engineering",
   ],
+  // Headline product, surfaced as a featured banner on the homepage + a nav link.
+  featured: {
+    name: "SanierNavigator",
+    url: "https://saniernavigator.com",
+    tagline: "Energetische Sanierung. Intelligent. Einfach. Menschlich.",
+    description:
+      "An AI building-renovation platform for the German market — it analyzes a property, navigates KfW & BAFA funding through a conversational Förder-Lotse, and connects owners with certified energy consultants.",
+    cta: "Visit saniernavigator.com",
+  },
   contact: {
     github: env.PUBLIC_GITHUB_URL,
     twitter: env.PUBLIC_TWITTER_URL ?? "https://x.com/SchlegelQuirin",
