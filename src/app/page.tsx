@@ -135,7 +135,7 @@ export default function HomePage() {
         </div>
         <div className="featured-project-body">
           <p className="eyebrow featured-project-badge">
-            <Sparkles className="icon-sm" />
+            <Sparkles className="icon-sm" aria-hidden="true" />
             Featured · Live Project
           </p>
           <h2>{siteConfig.featured.name}</h2>
@@ -146,7 +146,7 @@ export default function HomePage() {
               className="featured-project-cta"
               href={siteConfig.featured.url}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
               {siteConfig.featured.cta}
               <ArrowRight className="icon-sm" />
