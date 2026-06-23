@@ -121,7 +121,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                   key={link.href}
                   href={link.href}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   data-highlight={"highlight" in link && link.highlight ? true : undefined}
                 >
                   {link.label}
@@ -181,7 +181,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                 {PRIMARY_LINKS.map((link) => (
                   <li key={link.href}>
                     {"external" in link && link.external ? (
-                      <a href={link.href} target="_blank" rel="noreferrer" onClick={closeNav}>
+                      <a href={link.href} target="_blank" rel="noopener noreferrer" onClick={closeNav}>
                         {link.label}
                       </a>
                     ) : (
