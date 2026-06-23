@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { ArrowRight, Github, Linkedin, Mail, MessageSquare } from "lucide-react";
+import { ArrowRight, Compass, Github, Linkedin, Mail, MessageSquare, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { GitHubStatsSection } from "@/components/GitHubStatsSection";
@@ -118,6 +118,39 @@ export default function HomePage() {
                 </motion.li>
               ))}
             </motion.ul>
+          </div>
+        </div>
+      </motion.section>
+
+      <motion.section
+        id="saniernavigator"
+        className="panel featured-project"
+        initial={false}
+        whileInView={reduceMotion ? undefined : "visible"}
+        viewport={{ once: true, amount: 0.3 }}
+        variants={sectionReveal}
+      >
+        <div className="featured-project-glyph" aria-hidden="true">
+          <Compass />
+        </div>
+        <div className="featured-project-body">
+          <p className="eyebrow featured-project-badge">
+            <Sparkles className="icon-sm" />
+            Featured · Live Project
+          </p>
+          <h2>{siteConfig.featured.name}</h2>
+          <p className="featured-project-tagline">{siteConfig.featured.tagline}</p>
+          <p className="featured-project-desc">{siteConfig.featured.description}</p>
+          <div className="featured-project-actions">
+            <a
+              className="featured-project-cta"
+              href={siteConfig.featured.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {siteConfig.featured.cta}
+              <ArrowRight className="icon-sm" />
+            </a>
           </div>
         </div>
       </motion.section>

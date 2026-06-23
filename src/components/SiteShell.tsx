@@ -24,6 +24,7 @@ function mastheadStamp(): string {
 // two surfaces stay in lockstep.
 const PRIMARY_LINKS = [
   { href: "/#timeline", label: "Work" },
+  { href: siteConfig.featured.url, label: siteConfig.featured.name, external: true, highlight: true },
   { href: "/vault", label: "Vault" },
   { href: "/blog", label: "Six-Pagers" },
   { href: "/newsletter", label: "Newsletter" },
@@ -114,11 +115,23 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="site-nav-links" aria-label="Primary">
-            {PRIMARY_LINKS.map((link) => (
-              <Link key={link.href} href={link.href}>
-                {link.label}
-              </Link>
-            ))}
+            {PRIMARY_LINKS.map((link) =>
+              "external" in link && link.external ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-highlight={"highlight" in link && link.highlight ? true : undefined}
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} href={link.href}>
+                  {link.label}
+                </Link>
+              ),
+            )}
           </nav>
           <button
             type="button"
@@ -167,9 +180,15 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               <ul className="site-nav-drawer-primary">
                 {PRIMARY_LINKS.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} onClick={closeNav}>
-                      {link.label}
-                    </Link>
+                    {"external" in link && link.external ? (
+                      <a href={link.href} target="_blank" rel="noreferrer" onClick={closeNav}>
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link href={link.href} onClick={closeNav}>
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
